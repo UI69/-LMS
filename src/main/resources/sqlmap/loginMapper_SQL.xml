@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.ILoginMapper">
+	
+	<select id="login" parameterType="MemberVO" resultType="MemberVO">
+		select 
+			mem_no,
+			dprt_no,
+			mem_id,
+			mem_pw,
+			mem_name,
+			mem_gen,
+			mem_bir,
+			mem_ph,
+			mem_email,
+			mem_postcode,
+			mem_addr1,
+			mem_addr2,
+			otp_key,
+			mem_profile,
+			mem_nation_code,
+			mem_temp_pw,
+			mem_role
+		from member
+    	where mem_id = #{memId}
+        	and mem_pw = #{memPw}
+	</select>
+	
+	<select id="findId" parameterType="MemberVO" resultType="MemberVO">
+		select
+			mem_id
+		from member
+		where mem_email = #{memEmail} and mem_name = #{memName}
+	</select>
+	<select id="findPw" parameterType="MemberVO" resultType="MemberVO">
+		select
+			mem_pw
+		from member
+		where mem_email = #{memEmail} and mem_name = #{memName} and mem_id= #{memId}
+	</select>
+	
+	<!-- 비밀번호 변경 (임시비밀번호) -->
+	<update id="updatePw" parameterType="MemberVO">
+		update member set 
+			mem_pw = #{memPw },
+			mem_temp_pw = #{memTempPw }
+		where 
+			mem_email = #{memEmail} 
+			and mem_name = #{memName} 
+			and mem_id= #{memId}
+	</update>
+</mapper>

@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.ILectureMapper">
+	
+	<!-- 예비 수강 목록 -->
+	<select id="reserveClassList" parameterType="int" resultType="ClassVO">
+		SELECT
+		    cl.class_no
+		    , li.mem_no
+		    , cl.lec_no
+		    , cl.value_type
+		    , cl.class_name
+		    , cl.lec_point
+		    , cl.semester
+		    , cl.class_req_code
+		    , cl.class_max_mem
+		    , cl.class_total_time
+		    , cl.class_week_cnt
+		    
+		    , dp.dprt_name
+		    , dp.dprt_category
+		FROM department dp, lecture lc, class cl
+		left outer join listener li on (li.class_no = cl.class_no)
+		WHERE
+		    li.mem_no = #{memNo}
+		    and cl.lec_no = lc.lec_no
+		    and lc.dprt_no = dp.dprt_no
+		
+	</select>
+	
+	<select id="getClassListCnt" parameterType="PaginationVO" resultType="int">
+		SELECT
+			count(*)
+		FROM class
+		WHERE
+			class_status_code = 'CLS004'
+	</select>
+	
+	<!-- 강의 목록 -->
+	<select id="getClassList" resultType="classVO" parameterType="PaginationVO">
+		 SELECT
+			b.*	
+			FROM(
+				SELECT
+					a.*, row_number() over (order by a.class_no DESC) rnum
+				FROM (
+						SELECT
+							cl.class_no
+							, cl.lec_no
+							, cl.mem_no
+							, cl.room_no
+							, cl.value_type
+							, cl.class_name
+							, cl.lec_point
+							, cl.semester
+							, cl.class_req_code
+							, cl.class_max_mem
+							, cl.class_total_time
+							, cl.class_week_cnt
+							, cl.class_note
+							, cl.file_no
+							
+							, dp.dprt_name
+							, dp.dprt_category
+							
+							, mm.mem_name
+							
+							, fl.file_name
+							
+							, COUNT(li.listen_no) as total_listener
+						FROM member mm, department dp, lecture lc, class cl
+							left outer join listener li on (cl.class_no = li.class_no)
+							left outer join files fl on (cl.file_no = fl.file_no)
+						WHERE
+							cl.class_status_code = 'CLS004'
+							and cl.lec_no = lc.lec_no
+							and lc.dprt_no = dp.dprt_no
+							and mm.mem_no = cl.mem_no
+						GROUP BY 
+						    cl.class_no
+						    , cl.lec_no
+						    , cl.mem_no
+						    , cl.room_no
+						    , cl.value_type
+						    , cl.class_name
+						    , cl.lec_point
+						    , cl.semester
+						    , cl.class_req_code
+						    , cl.class_max_mem
+						    , cl.class_total_time
+						    , cl.class_week_cnt
+						    , cl.class_note
+						    , cl.file_no
+						    
+						    , dp.dprt_name
+						    , dp.dprt_category
+						    
+						    , mm.mem_name
+						    
+						    , fl.file_name
+						 order by cl.class_no DESC
+					 ) a
+				) b
+			<![CDATA[
+				where b.rnum >= #{startRow} and b.rnum <= #{endRow}
+			]]>
+	</select>
+	
+	<!-- 예비 수강신청 중복 검사-->
+	<select id="ReservClassDuplicateCheck" parameterType="reserveClassVO" resultType="int">
+		SELECT
+			count(*)
+		FROM reserve_class
+		WHERE
+			class_no = #{classNo}
+			and mem_no = #{memNo}
+	</select>
+	
+	<!-- 예비수강신청 목록 -->
+	<select id="myReserveClassList" resultType="reserveClassVO" parameterType="int">
+		SELECT
+			class_no
+			, mem_no
+			, res_status_code
+		FROM reserve_class
+		WHERE
+			mem_no = #{memNo}
+	</select>
+	
+	<!-- 예비 수강목록 추가 -->
+	<insert id="addReservClass" parameterType="reserveClassVO">
+		INSERT INTO reserve_class(
+			class_no
+			, mem_no
+			, res_status_code
+		) values (
+			#{classNo}
+			, #{memNo}
+			, #{resStatusCode }
+		)
+		
+	</insert>
+
+	<!-- 예비 수강 취소 -->
+	<delete id="removeReservClass" parameterType="reserveClassVO">
+		DELETE
+		FROM reserve_class
+		WHERE 
+			mem_no = #{memNo}
+			and class_no = #{classNo }
+	</delete>
+	
+	<!-- 수강신청 -->
+	<insert id="addListenClass" parameterType="ReserveClassVO">
+		INSERT INTO listener(
+			listen_no
+			, class_no
+			, mem_no
+			, ls_status_code
+		) SELECT 
+			listener_seq.nextval
+			, class_no
+			, #{memNo }
+			, 'LSS002'
+		FROM class
+		WHERE
+			class_no = #{classNo}
+	</insert>
+	
+	<!-- 수강인원 -->
+	<select id="totalClassListener" parameterType="int" resultType="int">
+		SELECT
+			count(*)
+		FROM listener
+		WHERE
+			class_no = #{classNo}
+	</select>
+	
+	<!-- 수강 정보 변경 -->
+	<update id="updateResClassListenState" parameterType="ReserveClassVO">
+		UPDATE reserve_class
+		SET
+			res_status_code = 'RES002'
+		WHERE 
+			mem_no = #{memNo }
+			and class_no = #{classNo }
+	</update>
+
+	<!-- 학과 목록 -->
+	<select id="getDprtList" resultType="DepartmentVO" parameterType="PaginationVO">
+		SELECT
+			b.*	
+			FROM(
+				SELECT
+					a.*, row_number() over (order by a.dprt_no desc) rnum
+				FROM (
+					SELECT
+						dprt_no, dprt_name, dprt_category, dprt_tuition, dprt_srv_time, dprt_lec_point, sem_max_lec_point
+					FROM department
+					 WHERE 1=1
+					 <include refid="dprtSearch"/>
+					 order by dprt_no desc
+					 ) a
+				) b
+			<![CDATA[
+				where b.rnum >= #{startRow} and b.rnum <= #{endRow}
+			]]>
+	</select>
+	
+	<!-- 학과 추가 -->
+	<insert id="addDprt" parameterType="DepartmentVO">
+		INSERT INTO department(
+			dprt_no
+			, dprt_name
+			, dprt_category
+			, dprt_tuition
+			, dprt_srv_time
+			, dprt_lec_point
+			, sem_max_lec_point
+		) values (
+			department_seq.nextval
+			, #{dprtName}
+			, #{dprtCategory}
+			, #{dprtTuition}
+			, #{dprtSrvTime}
+			, #{dprtLecPoint}
+			, #{semMaxLecPoint}
+		)
+	</insert>
+	
+	<select id="getLectureListCnt" parameterType="PaginationVO" resultType="int">
+		SELECT
+			count(*)
+		FROM lecture
+	</select>
+	
+	<!-- 교과목 목록 -->
+	<select id="getLectureList" resultType="LectureVO">
+		SELECT
+			b.*	
+		FROM(
+			SELECT
+				a.*, row_number() over (order by lec_no desc) rnum
+			FROM (
+					SELECT
+						lec_no
+						, mem_no
+						, lc.dprt_no
+						, lec_name
+						, lec_point
+						, lec_note
+						
+						, dprt_name
+					FROM lecture lc
+					inner join department dp on (lc.dprt_no = dp.dprt_no)
+				 ) a
+			) b
+		<![CDATA[
+			where b.rnum >= #{startRow} and b.rnum <= #{endRow}
+		]]>
+	</select>
+	
+	<select id="getAllClassListCnt" parameterType="PaginationVO" resultType="int">
+		SELECT
+			count(*)
+		FROM class
+	</select>
+	
+	<!-- 강의 목록 -->
+	<select id="getAllClassList" resultType="classVO" parameterType="PaginationVO">
+		SELECT
+			b.*	
+		FROM(
+			SELECT
+				a.*, row_number() over (order by class_no desc) rnum
+			FROM (
+					SELECT
+						class_no
+						, lec_no
+						, cl.mem_no
+						, room_no
+						, value_type
+						, class_name
+						, lec_point
+						, semester
+						, class_req_code
+						, class_max_mem
+						, class_total_time
+						, class_week_cnt
+						, class_status_code
+						, class_note
+						, cl.file_no
+						
+						, mm.mem_name
+						, mm.mem_ph
+					FROM class cl
+						inner join member mm on (cl.mem_no = mm.mem_no)
+					order by
+						class_no DESC
+				 ) a
+			) b
+		<![CDATA[
+			where b.rnum >= #{startRow} and b.rnum <= #{endRow}
+		]]>
+	</select>
+	
+	<!-- 강의 상세정보 -->
+	<select id="getClassDetail" parameterType="int" resultType="ClassVO">
+		SELECT
+			class_no
+			, lec_no
+			, cl.mem_no
+			, room_no
+			, value_type
+			, class_name
+			, lec_point
+			, semester
+			, class_req_code
+			, class_max_mem
+			, class_total_time
+			, class_week_cnt
+			, class_status_code
+			, class_note
+			, cl.file_no
+			
+			, mem_name
+			, mem_ph
+			, mem_email
+			
+			, file_name
+		FROM class cl
+		inner join member mm on (cl.mem_no = mm.mem_no)
+		left outer join files fl on (fl.file_no = cl.file_no)
+		WHERE
+			class_no = #{classNo }
+	</select>
+	
+	<!-- 클래스 허가/반려 -->
+	<update id="updateClassApply" parameterType="ClassVO">
+		UPDATE class
+		SET
+			class_status_code = #{classStatusCode }
+			, class_reject = #{classReject }
+		where 
+			CLASS_NO = #{classNo }
+	</update>
+	
+	<select id="getdprtInfo" parameterType="int" resultType="DepartmentVO">
+		select
+			dprt_no
+			, dprt_name
+			, dprt_category
+			, dprt_tuition
+			, dprt_srv_time
+			, dprt_lec_point
+			, sem_max_lec_point
+		from DEPARTMENT
+		where
+			DPRT_NO = #{dprtNo }
+	</select>
+	
+	<select id="classDuplCheck" parameterType="ReserveClassVO" resultType="int">
+		SELECT
+			count(*)
+		FROM listener
+		WHERE
+			class_no = #{classNo}
+			and mem_no = #{memNo}
+	</select>
+	
+	<select id="classMemCntCheck" parameterType="ReserveClassVO" resultType="ClassListenVO">
+		SELECT
+			cl.class_no,
+			cl.class_max_mem,
+			count(li.listen_no) as total_member
+		FROM class cl
+			LEFT OUTER JOIN listener li ON (cl.class_no = li.class_no)
+		WHERE
+			cl.class_no = #{classNo }
+        GROUP BY
+            cl.class_no,
+            cl.class_max_mem
+        ORDER BY
+            cl.class_no
+	</select>
+	
+	<sql id="dprtSearch">
+		<if test="searchType != null and searchType == 'dprtName'">
+			and (dprt_name like '%' || #{searchWord}|| '%')
+		</if>
+		<if test="searchType != null and searchType == 'dprtCategory'">
+			and (dprt_category like '%' || #{searchWord}|| '%')
+		</if>
+	</sql>
+	
+	<select id="selectDprtCount" parameterType="DepartmentVO" resultType="int">
+		SELECT count(dprt_no) FROM department
+		WHERE 1=1
+		<include refid="dprtSearch"/>
+	</select>
+	
+	<select id="getLecApplyListCnt" parameterType="PaginationVO" resultType="int">
+		SELECT
+			count(*)
+		FROM class
+		WHERE
+			class_status_code = 'CLS001'
+	</select>
+	
+	<select id="getLecApplyList" resultType="ClassVO" parameterType="PaginationVO">
+		SELECT
+			b.*	
+			FROM(
+				SELECT
+					a.*, row_number() over (order by class_no desc) rnum
+				FROM (
+					SELECT
+						class_no
+						, lec_no
+						, cl.mem_no
+						, room_no
+						, value_type
+						, class_name
+						, lec_point
+						, semester
+						, class_req_code
+						, class_max_mem
+						, class_total_time
+						, class_week_cnt
+						, class_status_code
+						, class_note
+						, cl.file_no
+						
+						, mm.mem_name
+						, mm.mem_ph
+					FROM class cl
+					inner join member mm on (cl.mem_no = mm.mem_no)
+					where
+						class_status_code = 'CLS001'
+					order by
+						class_no DESC
+					 ) a
+				) b
+			<![CDATA[
+				where b.rnum >= #{startRow} and b.rnum <= #{endRow}
+			]]>
+	</select>
+	
+</mapper>

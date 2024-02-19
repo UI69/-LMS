@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IUnivManagementMapper">
+	<!-- ResultMap 시작 -->
+	<resultMap type="BuildingVO" id="BuildingMap">
+		<id property="buildingNo" column="building_no"/>
+		<result property="buildingName" column="building_name"/>
+		<result property="locationInfo" column="location_info"/>
+		<collection property="facilityList" resultMap="FacMap"></collection>
+	</resultMap>	
+	<resultMap type="FacilityVO" id="FacMap">
+		<result property="facNo" column="fac_no"/>
+		<result property="facName" column="fac_name"/>
+	</resultMap>
+		
+	<resultMap type="FacilityVO" id="FacilityMap">
+		<id property="facNo" column="fac_no" />
+		<result property="facName" column="fac_name" />
+		<collection property="facilityRentList"	resultMap="FacRentMap"></collection>
+	</resultMap>
+	<resultMap type="FacilityRentVO" id="FacRentMap">
+		<result property="memNo" column="mem_no" />
+		<result property="memName" column="mem_name" />
+		<result property="facRegDate" column="fac_reg_date" />
+		<result property="facRsvStartDate" column="fac_rsv_start_date" />
+		<result property="facRsvEndDate" column="fac_rsv_end_date" />
+		<result property="facRentStatusCode" column="fac_rent_status_code" />
+	</resultMap>
+	
+	<resultMap type="FacilityRentVO" id="FacRentListMap">
+		<id property="facRentNo" column="fac_rent_no"/>
+		<result property="memNo" column="mem_no"/>
+		<result property="memName" column="mem_name"/>
+		<result property="facRegDate" column="fac_reg_date"/>
+		<result property="facRsvStartDate" column="fac_rsv_start_date"/>
+		<result property="facRsvEndDate" column="fac_rsv_end_date"/>
+		<result property="facRentStatusCode" column="fac_rent_status_code"/>
+		<result property="facReject" column="fac_reject"/>
+		
+		<collection property="buildingVO" resultMap="BuildingMap"></collection>
+		<collection property="facilityVO" resultMap="FacilityMap"></collection>
+	</resultMap>
+	<!-- ResultMap 끝 -->
+	
+	<!-- 학사일정 조회(캘린더) -->
+	<select id="univSchedule" resultType="UnivScheduleVO">
+		select
+		   univ_sch_no,
+		   univ_sch_name,
+		   to_char(univ_sch_start_date, 'yyyy-MM-dd HH24:mi:ss') univ_sch_start_date,
+		   to_char(univ_sch_end_date, 'yyyy-MM-dd HH24:mi:ss') univ_sch_end_date,
+		   univ_sch_cont,
+		   univ_sch_sem,
+		   univ_sch_reg,
+		   univ_sch_type
+		from univ_schedule
+		order by univ_sch_no desc
+	</select>
+	<!-- 학사일정 조회 -->
+	<select id="univScheduleList" resultType="UnivScheduleVO">
+		select
+		   univ_sch_no,
+		   univ_sch_name,
+		   to_char(univ_sch_start_date, 'yyyy-MM-dd HH24:mi:ss') univ_sch_start_date,
+		   to_char(univ_sch_end_date, 'yyyy-MM-dd HH24:mi:ss') univ_sch_end_date,
+		   univ_sch_cont,
+		   univ_sch_sem,
+		   univ_sch_reg,
+		   univ_sch_type
+		from univ_schedule
+		order by univ_sch_no desc
+	</select>
+	
+	<!-- 학사일정 조회 count -->
+	<select id="univSchCnt" resultType="int" parameterType="PaginationVO">
+		select 
+		    count(UNIV_SCH_NO)
+		from univ_schedule
+		where 1=1
+	</select>
+	
+	<!-- 학사일정 등록 -->
+	<insert id="addSchedule" parameterType="UnivScheduleVO">
+		<selectKey keyProperty="univSchNo" resultType="int" order="BEFORE">
+			select univ_schedule_seq.nextval from dual
+		</selectKey>
+		insert into univ_schedule (
+			univ_sch_no,
+			univ_sch_name,
+			univ_sch_start_date,
+			univ_sch_end_date,
+			univ_sch_cont,
+			univ_sch_sem,
+			univ_sch_reg,
+			univ_sch_type
+		)values(
+			#{univSchNo},
+			#{univSchName},
+			#{univSchStartDate},
+			#{univSchEndDate},
+			#{univSchCont},
+			sysdate,
+			#{univSchReg},
+			#{univSchType}
+		)
+	</insert>
+	
+	<!-- 학사일정 수정 -->
+	<update id="updateSchedule1" parameterType="UnivScheduleVO">
+		update univ_schedule
+		set
+		    univ_sch_name = #{univSchName},
+		    univ_sch_start_date = #{univSchStartDate},
+		    univ_sch_end_date = #{univSchEndDate},
+		    univ_sch_cont = #{univSchCont},
+		    univ_sch_sem = sysdate,
+		    univ_sch_reg = #{univSchReg},
+		    univ_sch_type = #{univSchType}
+		where univ_sch_no = #{univSchNo}
+	</update>
+	
+	<!-- 학사일정 삭제 -->
+	<delete id="deleteSchedule" parameterType="int">
+		delete from univ_schedule
+		where univ_sch_no = #{univSchNo}
+	</delete>
+	
+	<select id="univScheduleWidget" resultType="UnivScheduleVO">
+		select rownum, b.* 
+		from ( select * from univ_schedule
+				where 1 = 1
+				order by univ_sch_no desc
+		) b
+		where <![CDATA[ rownum <= 3 ]]>
+	</select>
+	
+	<!-- 건물 리스트 -->
+	<select id="buildingList" resultMap="BuildingMap">
+		select
+		    b.building_no,
+		    b.building_name,
+		    b.location_info,
+		    f.fac_no,
+		    f.fac_name
+		from building b
+			left outer join facility f on b.building_no = f.building_no
+	</select>
+	
+	<!-- 건물 선택 -->
+	<select id="buildingSelect" resultMap="BuildingMap">
+		select
+		    b.building_no,
+		    b.building_name,
+		    b.location_info,
+		    f.fac_no,
+		    f.fac_name
+		from building b
+			left outer join facility f on b.building_no = f.building_no
+		where b.building_no = #{buildingNo}
+	</select>
+
+	<!-- 시설 선택, 시설 승인/대기 리스트  -->
+	<select id="facilitySelect" resultMap="FacilityMap">
+		select
+		    f.fac_no,
+		    f.fac_name,
+		    fr.mem_no,
+		    fr.mem_name,
+		    fr.fac_reg_date,
+		    to_char(fr.fac_rsv_start_date ,'yy-MM-dd') as fac_rsv_start_date,
+		    to_char(fr.fac_rsv_end_date ,'yy-MM-dd') as fac_rsv_end_date,
+		    fr.fac_rent_status_code
+		from facility f
+		left outer join facility_rent fr
+		on f.fac_no = fr.fac_no
+		where
+			f.fac_no = #{facNo} and
+			(fr.fac_rent_status_code = 'FAC001' or
+			fac_rent_status_code = 'FAC002')
+	</select>
+	
+	<!-- 시설 예약 --> 
+	<insert id="facReservation" parameterType="FacilityRentVO">
+		insert into facility_rent(
+		    fac_rent_no,
+		    mem_no,
+		    fac_no,
+		    mem_name,
+		    fac_reg_date,
+			fac_rsv_start_date,
+		    fac_rsv_end_date,
+		    fac_rent_status_code
+		) values(
+		    facility_rent_seq.nextval,
+		    #{memNo},
+		    #{facNo},
+		    #{memName},
+		    sysdate,
+		    TO_DATE(#{facRsvStartDate}, 'yyyy-MM-dd HH24:mi'),
+		    TO_DATE(#{facRsvEndDate}, 'yyyy-MM-dd HH24:mi'),
+		    'FAC001'
+		)
+	</insert>
+	
+	<!-- 시설 예약 리스트(개인) -->
+	<select id="facilityRentList" resultMap="FacRentListMap" parameterType="PaginationVO">
+		SELECT
+			b.*
+			FROM (
+				SELECT
+					a.*, row_number() over (ORDER BY a.fac_rent_no DESC) rnum
+				FROM (
+					select
+					    fac_rent_no,
+					    b.building_no,
+					    b.building_name,
+					    f.fac_no,
+					    f.fac_name,
+					    mem_no,
+					    mem_name,
+					    TO_CHAR(fac_reg_date, 'yyyy-MM-dd') as fac_reg_date,
+					    TO_CHAR(fac_rsv_start_date, 'yyyy-MM-dd # HH24:mi' ) as fac_rsv_start_date,
+					    TO_CHAR(fac_rsv_end_date, 'HH24:mi') as fac_rsv_end_date,
+					    fac_rent_status_code,
+					    fac_reject
+					from building b
+					    left outer join facility f on b.building_no = f.building_no
+					    left outer join facility_rent fr on f.fac_no= fr.fac_no
+					where mem_no = ${memNo}
+					order by fac_rsv_start_date desc
+				) a
+			) b
+			<![CDATA[
+				WHERE b.rnum >= #{startRow} AND b.rnum <= #{endRow}
+			]]>
+		
+		
+	</select>
+	
+	<!-- 시설 예약 리스트(캘린더) -->
+<!-- 	<select id="facilityRentCal" resultMap="FacRentListMap" parameterType="int">	
+	select 
+	    fac_rent_no,
+	    fr.fac_no,
+	    f.fac_name,
+	    mem_no,
+	    mem_name,
+	    fac_reg_date,
+	    fac_rsv_start_date, fac_rsv_end_date,
+	    fac_rent_status_code,
+	    fac_reject
+	from facility_rent fr
+	left outer join facility f on f.fac_no = fr.fac_no
+	where
+		f.fac_no = ${facNo} and
+    	(fac_rent_status_code = 'FAC001' or
+    	fac_rent_status_code = 'FAC002')
+	</select> -->
+	
+</mapper>

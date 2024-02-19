@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.ISurveyMapper">
+
+	<resultMap type="SurveyVO" id="surveyMap">
+		<id property="srvNo" column="srv_no"/>
+		<result property="memNo" column="mem_no"/>
+		<result property="srvName" column="srv_name"/>
+		<result property="srvCategory" column="srv_category"/>
+		<result property="srvEndDate" column="srv_end_date"/>
+		<result property="srvRegDate" column="srv_reg_date"/>
+		
+		<collection property="srvQstList" resultMap="srvQstMap"/>
+		<collection property="srvResultList" resultMap="srvResultMap"/>
+	</resultMap>
+	
+	<resultMap type="SurveyQuestionVO" id="srvQstMap">
+		<result property="srvQstNo" column="srv_qst_no"/>
+		<result property="srvNo" column="srv_no"/>
+		<result property="qstNo" column="qst_no"/>
+		<result property="srvQst" column="srv_qst"/>
+		<result property="srvQstType" column="srv_qst_type"/>
+		
+		<collection property="srvQstChList" resultMap="srvQstChMap"/>
+	</resultMap>
+	
+	<resultMap type="SurveyQuestionChoiceVO" id="srvQstChMap">
+		<result property="qstChNo" column="qst_ch_no"/>
+		<result property="srvQstNo" column="srv_qst_no"/>
+		<result property="srvNo" column="srv_no"/>
+		<result property="chNo" column="ch_no"/>
+		<result property="chStr" column="ch_str"/>
+	</resultMap>
+	
+	<resultMap type="SurveyResultVO" id="srvResultMap">
+		<result property="srvResNo" column="srv_res_no"/>
+		<result property="srvNo" column="srv_no"/>
+		<result property="srvQstNo" column="srv_qst_no"/>
+		<result property="memNo" column="mem_no"/>
+		<result property="svrResAns" column="svr_res_ans"/>
+		<result property="svrResDate" column="svr_res_date"/>
+	</resultMap>
+	
+	<select id="getSurveyResult" parameterType="int" resultMap="surveyMap">
+		SELECT
+		    sv.srv_no
+		    ,srv_name
+		    ,srv_category
+		    ,srv_end_date
+		    , srv_reg_date
+		    
+		    ,sq.srv_qst_no
+		    ,qst_no
+		    ,srv_qst
+		    
+		    ,qst_ch_no
+		    ,ch_no
+		    ,ch_str
+		    
+		    ,sr.srv_res_no
+		    ,sr.mem_no
+		    ,sr.svr_res_ans
+		    ,sr.svr_res_date
+		FROM survey sv
+		    left outer join survey_question sq on(sv.srv_no = sq.srv_no)
+		    left outer join survey_question_choice qc on (sq.srv_qst_no = qc.srv_qst_no)
+		    left outer join survey_result sr on (sv.srv_no = sr.srv_no and sq.srv_qst_no = sr.srv_qst_no)
+		WHERE 1=1
+		    and sr.srv_no = #{srvNo }
+		ORDER BY 
+		    qst_no ASC
+	</select>
+	
+	<select id="getResultTotalCnt" parameterType="int" resultType="int">
+		SELECT
+	    	NVL(COUNT(DISTINCT sr.mem_no), '0' ) as srv_reg_count
+	    FROM survey_result sr
+	    WHERE 1=1
+	        and sr.srv_no = #{srvNo }
+	</select>
+	
+	<insert id="addSurveyAnswer" parameterType="SurveyResultVO" >
+
+		insert into  survey_result(
+			srv_res_no ,
+			srv_no ,
+			srv_qst_no ,
+			mem_no ,
+			svr_res_ans ,
+			svr_res_date 		
+		) values(
+			SURVEY_RESULT_SEQ.nextval,
+			#{srvNo},
+			#{srvQstNo},
+			#{memNo},
+			#{svrResAns},
+			sysdate
+		
+		)
+	</insert>
+	
+	<select id="getSurvey" parameterType="int" resultMap="surveyMap">
+		SELECT
+	        sr.SRV_NO
+		    ,MEM_NO
+		    ,SRV_NAME
+		    ,SRV_CATEGORY
+		    ,SRV_END_DATE
+		    ,srv_reg_date
+		    
+		    ,sq.SRV_QST_NO
+		    ,QST_NO
+		    ,SRV_QST
+		    ,SRV_QST_TYPE
+		    
+		    ,QST_CH_NO
+		    ,CH_NO
+		    ,CH_STR
+		FROM survey sr
+		    left outer join SURVEY_QUESTION sq on(sr.srv_no = sq.srv_no)
+		    left outer join SURVEY_QUESTION_CHOICE qc on (sq.srv_qst_no = qc.srv_qst_no)
+		where
+		    sr.srv_no = #{srvNo }
+		order by 
+			QST_NO ASC, CH_NO ASC
+	</select>
+	
+	
+	
+
+	<sql id="surveySearch">
+		<if test="searchType != null and searchType == 'name'">
+			and (srv_name like '%'||#{searchWord}||'%')
+		</if>
+		<if test="searchType != null and searchType != 'name'">
+			and srv_category = #{searchType}
+			and (srv_name like '%'||#{searchWord}||'%')
+		</if>
+	</sql>
+
+	<select id="surveyList" parameterType="PaginationVO" resultType="SurveyVO">
+			select
+				b.*
+			from (
+				select
+					a.*, row_number() over (order by a.srv_no desc) rnum
+				from (
+					select 
+						sv.srv_no ,
+						sv.mem_no ,
+						srv_name ,
+						srv_category ,
+						srv_end_date ,
+						srv_reg_date ,
+						
+						count(sr.mem_no) as srv_reg_count
+				from survey sv
+				left outer JOIN survey_result sr ON sv.srv_no = sr.srv_no and sr.mem_no = #{memNo}
+				where 1=1
+					<include refid="surveySearch" />
+                GROUP BY
+	                sv.srv_no,
+	                sv.mem_no,
+	                srv_name,
+	                srv_category,
+	                srv_end_date,
+	                srv_reg_date
+				order by srv_no desc
+				) a
+			) b
+			<![CDATA[
+				where b.rnum >= #{startRow} and b.rnum <= #{endRow}
+			]]>		
+
+	</select>
+
+
+	<select id="surveyListCnt" resultType="int">
+		select count(srv_no) 
+		from SURVEY
+			where 1 = 1
+		<include refid="surveySearch" />
+	</select>
+	
+	
+	
+	<sql id="srvMntSearch">
+		<if test="searchType != null and searchWord != null">
+			and (${searchType } like '%'||#{searchWord}||'%')
+		</if>
+	</sql>
+	
+	<select id="srvMntListCnt" resultType="int">
+		select count(srv_no)
+		from SURVEY
+			where 1 = 1
+		<include refid="srvMntSearch" />
+	</select>
+	
+	<select id="srvMntList" parameterType="PaginationVO" resultType="SurveyVO">
+		select
+				b.*
+			from (
+				select
+					a.*, row_number() over (order by a.srv_no desc) rnum
+				from (
+					select 
+						sv.srv_no 
+						, srv_name 
+						, srv_category
+						, srv_end_date
+						, srv_reg_date
+                        
+                        , count(DISTINCT sr.mem_no) as srv_reg_count
+				from survey sv
+                left outer JOIN survey_result sr ON sv.srv_no = sr.srv_no
+				where 1=1
+					<include refid="srvMntSearch" />
+					GROUP BY
+                        sv.srv_no,  -- 기준으로 그룹화할 열
+                        srv_name,
+                        srv_category,
+                        srv_end_date,
+                        srv_reg_date
+                    ORDER BY sv.srv_no DESC
+				) a
+			) b
+			<![CDATA[
+				where b.rnum >= #{startRow} and b.rnum <= #{endRow}
+			]]>		
+	</select>
+	
+	
+	<insert id="addSurvey" parameterType="surveyVO">
+		<selectKey keyProperty="srvNo" resultType="int" order="BEFORE">
+			select survey_seq.nextval from dual
+		</selectKey>
+		INSERT INTO survey (
+			srv_no
+			, mem_no
+			, srv_name
+			, srv_category
+			, srv_end_date
+			, srv_reg_date
+		) VALUES (
+			#{srvNo}
+			, #{memNo}
+			, #{srvName}
+			, #{srvCategory}
+			, TO_DATE(#{srvEndDate}, 'YYYY-MM-DD HH24:MI:SS')
+			, sysDate
+		)
+	</insert>
+	
+	<insert id="addSrvQuestion" parameterType="SurveyQuestionVO">
+		<selectKey keyProperty="srvQstNo" resultType="int" order="BEFORE">
+			select survey_question_seq.nextval from dual
+		</selectKey>
+		INSERT INTO survey_question (
+			srv_qst_no
+			, srv_no
+			, qst_no
+			, srv_qst
+		) VALUES (
+			#{srvQstNo}
+			, #{srvNo}
+			, #{qstNo}
+			, #{srvQst}
+		)
+	</insert>
+	
+	<insert id="addSrvQstChoice" parameterType="SurveyQuestionChoiceVO">
+		INSERT INTO survey_question_choice (
+			qst_ch_no
+			, srv_qst_no
+			, srv_no
+			, ch_no
+			, ch_str
+		) VALUES (
+			survey_question_choice_seq.nextval
+			, #{srvQstNo}
+			, #{srvNo}
+			, #{chNo}
+			, #{chStr}
+		)
+	</insert>
+	
+
+</mapper>

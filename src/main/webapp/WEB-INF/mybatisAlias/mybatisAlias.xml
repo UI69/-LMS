@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+	
+	<settings>
+		<setting name="mapUnderscoreToCamelCase" value="true"/>
+		<setting name="jdbcTypeForNull" value="VARCHAR"/>
+	</settings>
+	
+	<typeAliases>
+		
+		<package name="kr.or.ddit.vo"/>
+		
+		<!-- <typeAlias type="kr.or.ddit.vo.BoardVO" alias="boardVO"/>
+		<typeAlias type="kr.or.ddit.vo.MemberVO" alias="memberVO"/>
+		<typeAlias type="kr.or.ddit.vo.UnivScheduleVO" alias="univScheduleVO"/>
+		<typeAlias type="kr.or.ddit.vo.StudentInfoVO" alias="studentInfoVO"/>
+		<typeAlias type="kr.or.ddit.vo.ClassVO" alias="classVO"/>
+		<typeAlias type="kr.or.ddit.vo.ReserveClassVO" alias="reserveClassVO"/>
+		<typeAlias type="kr.or.ddit.vo.CounselVO" alias="counselVO"/>
+		<typeAlias type="kr.or.ddit.vo.PaginationVO" alias="pagingVO"/>
+		<typeAlias type="kr.or.ddit.vo.ChatRecordVO" alias="chatRecordVO"/>
+		<typeAlias type="kr.or.ddit.vo.CommunityVO" alias="communityVO"/> -->
+	</typeAliases>
+	
+</configuration>

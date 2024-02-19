@@ -1,0 +1,585 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IClassManagementMapper">
+	
+	<resultMap type="ListenerVO" id="ListenerMap">
+		<id property="listenNo" column="LISTEN_NO"/>
+		<result property="classNo" column="CLASS_NO"/>
+		<result property="memNo" column="MEM_NO"/>
+		<result property="classScore" column="CLASS_SCORE"/>
+		<result property="lsStatusCode" column="LS_STATUS_CODE"/>
+		<result property="totalExamScore" column="total_exam_score"/>
+		<result property="totalHwScore" column="total_hw_score"/>
+		
+		<association property="member" javaType="MemberVO">
+			<result property="memNo" column="mem_no" />
+			<result property="memName" column="mem_name" />
+			<result property="memId" column="mem_id" />
+		</association>
+			
+		<association property="classVO" resultMap="ClassResultMap" />	
+			
+		<association property="classVO" javaType="classVO">
+			<result property="classWeekCnt" column="class_week_cnt"/>
+		</association>
+		
+		<collection property="attendList" resultMap="AttendMap" />
+		<collection property="exampleList" resultMap="ExamapleMap" />
+	</resultMap>
+	
+	<resultMap type="classVO" id="ClassResultMap">
+    	<result property="classWeekCnt" column="class_week_cnt"/>
+	</resultMap>
+	
+	                                                       
+	<resultMap type="AttendVO" id="AttendMap">
+		<result property="atNo" column="AT_NO"/>
+		<result property="listenNo" column="LISTEN_NO"/>
+		<result property="atDate" column="AT_DATE"/>
+		<result property="atStatus" column="AT_STATUS"/>
+	</resultMap>
+	
+	<resultMap type="ExampleVO" id="ExamapleMap">
+		<result property="examNo" column="exam_no"/>
+		<result property="examName" column="exam_name"/>
+		<result property="examTotalScore" column="exam_total_score"/>
+	</resultMap>
+	
+	
+	<sql id="progressClassSearch">
+		<if test="pagingVO.searchType != null and pagingVO.searchType == 'semester'">
+			and (semester like '%'||#{pagingVO.searchWord}||'%')
+		</if>
+		<if test="pagingVO.searchType != null and pagingVO.searchType == 'classReqCode'">
+			and (class_req_code like '%'||#{pagingVO.searchWord}||'%')
+		</if>
+	</sql>
+	
+
+	<update id="updateListener">
+		update listener 
+		set
+			CLASS_COMMENT = #{classComment },
+			LS_STATUS_CODE = #{lsStatusCode }
+		where
+			listen_no = #{listenNo }
+	</update>
+	
+	<insert id="addLectureRating">
+		insert into lecture_rating (
+			lec_rating_no
+			,listen_no
+			,class_no
+			,mem_no
+			,lec_qst_no
+			,lec_qst_choice
+		) values (
+			lecture_rating_seq.nextval
+			, #{listenNo     }
+			, #{classNo      }
+			, #{memNo        }
+			, #{lecQstNo     }
+			, #{lecQstChoice }
+		)
+			
+		
+	</insert>
+
+
+	<select id="getListener" parameterType="ListenerVO" resultType="ListenerVO">
+		select
+			listen_no
+			, class_no
+			, mem_no
+			, class_score
+			, ls_status_code
+		from listener
+		where
+			mem_no = #{memNo }
+			and class_no = #{classNo}
+	</select>
+
+	<!-- 교수 출석 체크 등록  -->
+	<insert id="attendCheck" parameterType="AttendVO">
+	<selectKey keyProperty="atNo" resultType="int" order="BEFORE">
+		select attend_seq.nextval from dual
+	</selectKey>
+		insert into attend (
+			at_no, 
+			listen_no, 
+			mem_no, 
+			at_date,
+			at_status
+		
+		 )values(
+			 #{atNo}, 
+			 #{listenNo}, 
+			 #{memNo}, 
+			 #{atDate}, 
+			 #{atStatus}
+		 )
+	
+	</insert>
+
+	<select id="getAttendCheck" parameterType="AttendVO" resultType="AttendVO">
+		select
+			at_no
+			, listen_no
+			, mem_no
+			, at_date
+			, at_status
+		from attend
+		where
+			at_no = #{atNo }
+	</select>
+	
+	<update id="updateAttendCheck" parameterType="AttendVO">
+		update attend set
+			at_status = #{atStatus }
+		where
+			at_no = #{atNo }
+	</update>
+
+	<!-- 교수 출석 체크   -->
+	<select id="myClassCheck" parameterType="int" resultMap="ListenerMap">
+			SELECT 
+			    li.listen_no,
+			    li.class_no,
+			    li.mem_no,
+			    li.class_score,
+			    li.ls_status_code,
+			    
+			    m.mem_no,
+			    m.mem_name,
+                
+                at.at_no,
+			    at.at_date,
+			    at.at_status
+			FROM 
+			    MEMBER m, LISTENER li
+			LEFT OUTER JOIN 
+			    ATTEND at ON at.listen_no = li.listen_no 
+			    	and at.mem_no = li.mem_no
+			WHERE 
+				li.mem_no = m.mem_no
+			    and li.class_no = #{class_no}
+			order by 
+				at_date ASC
+	</select>	
+	
+	
+	<!-- <select id="progressClassList" parameterType="int" resultType="ClassVO">
+		SELECT
+			class_no
+			, lec_no
+			, mem_no
+			, room_no
+			, value_type
+			, class_name
+			, lec_point
+			, semester
+			, class_req_code
+			, class_max_mem
+			, class_total_time
+			, exam_proprion
+			, hw_propotion
+			, at_propotion
+			, class_status_code
+			, class_week_cnt
+			, class_note
+			, class_reject
+			, file_no
+		FROM class
+		WHERE 
+			mem_no = #{memNo}
+			and (
+					CLASS_STATUS_CODE = 'CLS001'
+					or CLASS_STATUS_CODE = 'CLS003'
+					or CLASS_STATUS_CODE = 'CLS004' 
+					or CLASS_STATUS_CODE = 'CLS005' 
+				)
+	</select> -->
+	
+	<select id="managementCnt" resultType="int">
+		   SELECT COUNT(class_no) 
+		   FROM class 
+			where 1 = 1
+				and mem_no = #{memNo}
+				and ( 
+						CLASS_STATUS_CODE = 'CLS004' 
+	                	OR CLASS_STATUS_CODE = 'CLS005'
+	                )
+   	 	<include refid="progressClassSearch" />
+   	 		
+	</select>
+	
+	<select id="progressClassList" resultMap="ClassResultMap">
+    SELECT B.* FROM (
+        SELECT A.*, ROW_NUMBER() OVER (ORDER BY A.class_no DESC) RNUM FROM (
+            SELECT 
+            	class_no
+			, lec_no
+			, mem_no
+			, room_no
+			, value_type
+			, class_name
+			, lec_point
+			, semester
+			, class_req_code
+			, class_max_mem
+			, class_total_time
+			, exam_proprion
+			, hw_propotion
+			, at_propotion
+			, class_status_code
+			, class_week_cnt
+			, class_note
+			, class_reject
+			, file_no			
+            FROM class 
+            WHERE 
+	            mem_no = #{memNo}
+	            AND (
+	                CLASS_STATUS_CODE = 'CLS004' 
+	                OR CLASS_STATUS_CODE = 'CLS005'
+	            )
+            	<include refid="progressClassSearch" />
+            ORDER BY class_no DESC
+        ) A
+    ) B
+    <![CDATA[
+        WHERE B.RNUM >= #{pagingVO.startRow} and B.RNUM <= #{pagingVO.endRow}
+    ]]>
+</select>
+	
+	<insert id="addClassBrd" parameterType="ClassBoardVO">
+		insert into class_board (
+			class_brd_no
+			, class_no
+			, class_brd_title
+			, class_brd_cont
+			, class_write_date
+			, class_brd_hit_count
+			, file_no
+		) values(
+			class_board_seq.nextval
+			, #{classNo}
+			, #{classBrdTitle}
+			, #{classBrdCont}
+			, sysDate
+			, 0
+			, #{fileNo}
+		)
+	</insert>
+	
+	<insert id="addClassHomework">
+		insert into homework (
+			hw_no
+			, class_no
+			, hw_title
+			, hw_upload
+			, hw_date
+			, hw_cont
+			, file_no
+		) values(
+			homework_seq.nextval
+			, #{classNo}
+			, #{hwTitle}
+			, TO_DATE(#{hwUpload}, 'YYYY-MM-DD HH24:MI:SS')
+			, sysDate
+			, #{hwCont}
+			, #{fileNo}
+		)
+	</insert>
+	
+	<select id="getHwSubmitList" parameterType="int" resultType="HomeworkVO">
+		select
+		    hw.hw_no
+		    , hw.class_no
+		    , hw.hw_title
+		    , hw.hw_upload
+		    , hw.hw_date
+		    , hw.hw_cont
+		from class cl, homework hw
+		where
+		    cl.class_no = ${class_no}
+		    and cl.class_no = hw.class_no
+	</select>
+	
+	<select id="getHwSubList" parameterType="int" resultType="HomeworkSubmitVO">
+		SELECT
+		    hw_sb_no
+			, hs.mem_no
+			, hw_no
+			, hw_sb_date
+			, hw_sb_status_code
+			, hw_content
+			, hw_score
+			
+			, fl.file_no
+			, fl.file_name
+			
+			, mm.mem_name
+			, mm.mem_id
+		FROM member mm, homework_submit hs
+			left outer join files fl on (hs.file_no = fl.file_no)
+		WHERE
+		    hs.hw_no = ${hw_no}
+		    and mm.mem_no = hs.mem_no
+		ORDER BY hw_sb_date, fl.file_group_no
+	</select>
+	
+	<update id="updateHwScore" parameterType="HomeworkSubmitVO">
+        UPDATE 
+            homework_submit
+        SET
+            hw_score = #{hwScore}
+        WHERE
+        	hw_sb_no = #{hwSbNo}
+	</update>
+	
+	<select id="getExSubList" parameterType="int" resultType="ExamAnswerVO">
+		SELECT
+		    ea.exam_no
+		    , mm.mem_no
+		    , answer_date
+		    
+		    , ex.exam_name
+		    
+		    , mm.mem_name
+		    , mm.mem_id
+		    , sum(get_score) as Total_score
+		FROM exam_answer ea, member mm, example ex
+		WHERE
+		    ea.exam_no = ${examNo }
+		    and mm.mem_no = ea.mem_no
+		    and ex.exam_no = ea.exam_no
+		GROUP BY ea.exam_no, mm.mem_no, mm.mem_name, mm.mem_id, answer_date, ex.exam_name
+	</select>
+	
+	<insert id="addExample" parameterType="ExampleVO" useGeneratedKeys="true">
+		<selectKey keyProperty="examNo" resultType="int" order="BEFORE">
+			select example_seq.nextval from dual
+		</selectKey>
+		INSERT INTO example (
+			exam_no
+			, class_no
+			, exam_name
+			, exam_date
+			, exam_time
+			, exam_total_score
+			, exam_type
+		)VALUES(
+			#{examNo}
+			, #{classNo}
+			, #{examName}
+			, TO_DATE(#{examDate}, 'YYYY-MM-DD HH24:MI:SS')
+			, #{examTime}
+			, #{examTotalScore}
+			, 'EXT001'
+		)
+	</insert>
+	
+	<insert id="addQuestion" parameterType="ExampleQuestionVO" useGeneratedKeys="true">
+		<selectKey keyProperty="examQstNo" resultType="int" order="BEFORE">
+			select example_question_seq.nextval from dual
+		</selectKey>
+		INSERT INTO example_question (
+			exam_qst_no
+			, exam_no
+			, qst_no
+			, exam_qst
+			, qst_score
+			, qst_correct
+			, file_no
+		)VALUES(
+			#{examQstNo}
+			, #{examNo}
+			, #{qstNo}
+			, #{examQst}
+			, #{qstScore}
+			, #{qstCorrect}
+			, #{fileNo}
+		)
+	</insert>
+	
+	<insert id="addQstChoiceList" parameterType="QuestionChoiceVO">
+			INSERT INTO question_choice (
+				qst_ch_no
+				, exam_qst_no
+				, exam_no
+				, ch_no
+				, ch_str
+			)VALUES(
+				question_choice_seq.nextval
+				, #{examQstNo}
+				, #{examNo}
+				, #{chNo}
+				, #{chStr}
+			)
+	</insert>
+	
+	<select id="getExampleList" resultType="ExampleVO" parameterType="ExampleVO">
+		SELECT
+			exam_no
+			, class_no
+			, exam_name
+			, exam_date
+			, exam_time
+			, exam_type
+			, exam_total_score
+			, exam_mark_type
+		FROM example
+		where
+			class_no = #{classNo }
+		order by exam_no DESC
+	</select>
+	
+	<!-- 진행중 강의 List -->
+	<select id="scoreSetting" parameterType="int" resultType="ClassVO">
+		SELECT
+			class_no
+			, lec_no
+			, mem_no
+			, room_no
+			, value_type
+			, class_name
+			, lec_point
+			, semester
+			, class_req_code
+			, class_max_mem
+			, class_total_time
+			, exam_proprion
+			, hw_propotion
+			, at_propotion
+			, class_status_code
+			, class_week_cnt
+			, class_note
+			, class_reject
+			, file_no
+		FROM class
+		WHERE 
+			mem_no = #{memNo} and
+			(class_status_code = 'CLS004' or 
+  			 class_status_code = 'CLS005' or
+   			 class_status_code ='CLS007') and
+			semester = '2024/03' 
+	</select>
+	<!-- 수강생 리스트 -->
+	<select id="listenerList" parameterType="int" resultMap="ListenerMap">
+		select
+			li.listen_no,
+			li.class_no,
+			li.mem_no,
+			li.class_score,
+			li.ls_status_code,
+			m.mem_name,
+			m.mem_id
+		from listener li, member m
+		where 
+			(li.mem_no = m.mem_no) and
+			class_no = #{classNo}
+	</select>
+	
+	<!-- 시험 점수 List -->
+	<select id="examScoreList" parameterType="int" resultMap="ListenerMap">
+		select
+		    c.class_no,
+		    c.class_week_cnt,
+		    li.mem_no,
+		    sum(ea.get_score) as total_exam_score
+		from class c
+		left outer join listener li on c.class_no = li.class_no
+		inner join example e on c.class_no = e.class_no
+		left outer join exam_answer ea on (ea.mem_no = li.mem_no and ea.exam_no = e.exam_no)
+		where
+		    c.class_no = #{classNo}
+		group by
+		    c.class_no,
+		    c.class_week_cnt,
+		    li.mem_no
+	</select>
+	
+	<!-- 과제 점수 List -->
+	<select id="hwScoreList" parameterType="int" resultMap="ListenerMap">
+		select
+		    c.class_no,
+		    li.mem_no,
+		    sum(hs.hw_score) as total_hw_score
+		from class c
+			left outer join listener li on c.class_no = li.class_no
+			inner join homework h on c.class_no = h.class_no
+			left outer join homework_submit hs on (hs.mem_no = li.mem_no and h.hw_no = hs.hw_no)
+		where 
+		    c.class_no = #{classNo}
+		group by
+		    c.class_no,
+		    li.mem_no
+	</select>
+	
+	<!-- 출석 현황 List -->
+	<select id="atScoreList" parameterType="int" resultType="hashMap">
+		select
+		    li.class_no,
+		    li.mem_no,
+		    sum(CASE WHEN at.at_status = 'ATS001' THEN 1 END) as ATS001,
+		    sum(CASE WHEN at.at_status = 'ATS002' THEN 1 END) as ATS002,
+		    sum(CASE WHEN at.at_status = 'ATS003' THEN 1 END) as ATS003,
+		    sum(CASE WHEN at.at_status = 'ATS004' THEN 1 END) as ATS004
+		from
+		    listener li
+		    left outer join attend at on (li.listen_no = at.listen_no and li.mem_no = at.mem_no)
+		where
+		    li.class_no = #{classNo}
+		group by
+		    li.class_no, li.mem_no
+	</select>
+	
+	<!-- 기준점수(시험) -->
+	<select id="examStandartScore" parameterType="int" resultType="int">
+		select 
+			sum(exam_total_score) as exam_standard_score 
+		from 
+			example where class_no = #{classNo}
+	</select>
+	<!-- 기준점수(과제) -->
+	<select id="hwStandartScore" parameterType="int" resultType="int">
+		select count(hw_no)*100 from homework where class_no = #{classNo}
+	</select>
+	
+	<!-- 학점 등록 -->
+	<update id="updateScore" parameterType="ListenerVO">
+		update 
+			listener
+		set 
+			class_score = #{classScore}
+		where 
+			class_no = #{classNo} and 
+			mem_no = #{memNo}
+	</update>
+	
+	<!-- 강의 상태 -->
+	<update id="classStatusUpdate" parameterType="ClassVO">
+		update 
+			class
+		set 
+			class_status_code = #{classStatusCode}
+		where 
+			class_no = #{classNo}
+	</update>
+	
+	<select id="getScoreVal" parameterType="int" resultType="ScoreValueVO">
+		select
+		    sv.grade_a,
+		    sv.grade_b,
+		    sv.grade_c
+		from class c
+		inner join score_value sv on c.value_type = sv.value_type
+		where 
+			class_no = #{classNo}
+	</select>
+	
+	
+</mapper>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN" "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<tiles-definitions>
+
+	<!-- 배경정보 설정 -->
+	<definition name="mainTemplate" template="/WEB-INF/views/mainTemplate.jsp">
+		<put-attribute name="header" value="/WEB-INF/views/tiles/header.jsp"/>	
+		<put-attribute name="footer" value="/WEB-INF/views/tiles/footer.jsp"/>		
+		<put-attribute name="chat" value="/WEB-INF/views/tiles/chat.jsp"/>		
+		<!-- tiles test용  -->
+		
+		<!-- <put-attribute name="content" value=""/> -->
+	</definition>
+	
+	<!-- 위의 배경지를 받아서 동적 콘텐츠 설정(내용에 대한 부분ex)list.jsp가 동적으로 변경) controller의리턴값-name, {}에 매핑 -->
+	<!-- <definition name="aside/*" extends="mainTemplate">
+		<put-attribute name="side" value="/WEB-INF/views/tiles/aside/{1}.jsp"/>
+	</definition> -->
+	
+	<definition name="student/*" extends="mainTemplate">
+		<put-attribute name="content" value="/WEB-INF/views/student/{1}.jsp"/>
+		<put-attribute name="side" value="/WEB-INF/views/tiles/aside/stdside.jsp"/>
+	</definition>
+	
+	<definition name="professor/*" extends="mainTemplate">
+		<put-attribute name="content" value="/WEB-INF/views/professor/{1}.jsp"/>
+		<put-attribute name="side" value="/WEB-INF/views/tiles/aside/proside.jsp"/>	
+	</definition>
+	
+	<definition name="employer/*" extends="mainTemplate">
+		<put-attribute name="content" value="/WEB-INF/views/employer/{1}.jsp"/>
+		<put-attribute name="side" value="/WEB-INF/views/tiles/aside/empside.jsp"/>	
+	</definition>
+
+	
+	<!-- test -->
+	<definition name="test/*" extends="mainTemplate">
+		<put-attribute name="content" value="/WEB-INF/views/test/{1}.jsp"/>
+		<put-attribute name="side" value="/WEB-INF/views/tiles/aside/stdside.jsp"/>
+	</definition>
+	
+</tiles-definitions>

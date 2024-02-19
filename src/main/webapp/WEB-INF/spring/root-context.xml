@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+	
+	<!-- Root Context: defines shared resources visible to all other web components -->
+		
+		
+	<!-- dataSource : 데이터베이스와 관련된 정보를 설정한다. -->
+	<bean id="dataSource" class="org.apache.commons.dbcp2.BasicDataSource" destroy-method="close">
+		<property name="driverClassName" value="oracle.jdbc.driver.OracleDriver"/>
+		<property name="url" value="jdbc:oracle:thin:@112.220.114.130:1521:xe"/>
+		<property name="username" value="team3_202307f"/>
+		<property name="password" value="java"/>
+	</bean>
+	
+	<!-- 
+		데이터베이스와 연결을 맺고 끊어질 때까지의 라이프 사이클을 관리해주는 SqlSessionTemplate 객체를 생성한다.
+		1) dataSource
+		2) Mapper xml 위치 지정
+		3) 마이바티스 설정 위치 지정
+	 -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"/>
+		<property name="mapperLocations" value="classpath:/sqlmap/**/*_SQL.xml"/>
+		<property name="configLocation" value="/WEB-INF/mybatisAlias/mybatisAlias.xml"/>
+	</bean>
+	
+	<!-- 
+		데이터베이스에 쿼리를 실행시키는 객체
+		이 객체를 통해서 query를 실행한다.
+	 -->
+	 <bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+	 	<constructor-arg name="sqlSessionFactory" index="0" ref="sqlSessionFactory"/>
+	 </bean>
+	 
+	 <!-- 
+		Mapper 인터페이스 설정
+		개발자가 직접 DAO를 설정하지 않아도 자동으로 Mapper 인터페이스를 활용하는 객체를 생성하게 된다.
+	  -->
+	 <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+	 	<property name="basePackage" value="kr.or.ddit.mapper"/>
+	 </bean>
+	
+	<bean id="multipartResolver" 
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="maxUploadSize" value="20000000"/>
+		<property name="maxInMemorySize" value="20000000"/>
+		<property name="defaultEncoding" value="UTF-8"></property>
+	</bean>
+	
+	<bean id="uploadPath" class="java.lang.String">
+		<constructor-arg value="D:\A_TeachingMaterial\07_JSP_Spring\workspace\workspace_spring2\.metadata\.plugins\org.eclipse.wst.server.core\tmp0\wtpwebapps\Spring2Project\resources\upload"/>
+	</bean>
+	
+		<bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+        <property name="host" value="smtp.naver.com" />
+        <property name="port" value="587" />    
+        <property name="username" value="yullstagram@naver.com"/>
+        <property name="password" value="wlgh123!" />
+        <property name="defaultEncoding" value="utf-8" />
+        
+        <property name="javaMailProperties">
+            <props>
+                <prop key="mail.smtp.starttls.enable">true</prop>
+                <prop key="mail.smtp.auth">true</prop>
+                <prop key="mail.smtps.ssl.checkserveridentity">true</prop>
+                <prop key="mail.smtps.ssl.trust">smpt.naver.com</prop>
+                <prop key="mail.debug">true</prop>
+                <prop key="mail.smtp.socketFactory.class">javax.net.ssl.SSLSocketFactory</prop>
+            </props>
+        </property>
+    </bean>
+    
+    
+      <!-- 트랜잭션 -->
+     <bean id="transactionManager"
+	 	class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	 	<property name="dataSource" ref="dataSource"></property>
+	 </bean>
+	 
+	 <!-- 어노테이션 기반 트랜잭션 제어 활성화 -->
+	 <tx:annotation-driven/>
+    
+</beans>

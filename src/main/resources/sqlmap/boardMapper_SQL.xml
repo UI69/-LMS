@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IBoardMapper">
+
+	<resultMap type="BoardVO" id="boardResultMap">
+		<result property="brdNo" column="brd_no"/>
+		<result property="memNo" column="mem_no"/>
+		<result property="brdTitle" column="brd_title"/>
+		<result property="brdCont" column="brd_cont"/>
+		<result property="brdWriter" column="brd_writer"/>
+		<result property="writeDate" column="write_date"/>
+		<result property="brdHitCount" column="brd_hit_count"/>
+		<result property="brdType" column="brd_type"/>
+		<result property="fileNo" column="file_no"/>
+		<collection property="fileList" resultMap="filesResultMap" />
+	</resultMap>
+	
+	<resultMap type="FilesVO" id="filesResultMap">
+		<result property="fileNo" column="file_no"/>
+		<result property="fileGroupNo" column="file_group_no"/>
+		<result property="fileName" column="file_name"/>
+		<result property="filePath" column="file_path"/>
+		<result property="fileUuid" column="file_uuid"/>
+		<result property="fileMime" column="file_mime"/>
+		<result property="fileDownCnt" column="file_down_cnt"/>
+		<result property="fileUploadDate" column="file_upload_date"/>
+		<result property="fileFancysize" column="file_fancysize"/>
+		<result property="fileSize" column="file_size"/>
+	</resultMap>
+	
+	<!-- 공지사항 시작 -->
+	
+	<sql id="academicPSearch">
+		<if test="pagingVO.searchType != null and pagingVO.searchType == 'title'">
+			and (title like '%'||#{pagingVO.searchWord}||'%')
+		</if>
+		<if test="pagingVO.searchType != null and pagingVO.searchType == 'content'">
+			and (content like '%'||#{pagingVO.searchWord}||'%')
+		</if>
+	</sql>
+	
+	<select id="noticeBoardList" resultType="BoardVO">
+		select
+			b.*
+		from (
+			select
+				a.*, row_number() over (order by a.brd_no desc) rnum
+			from (
+				select 
+					brd_no
+					, mem_no
+					, brd_title
+					, brd_cont
+					, brd_writer
+					, to_char(write_date, 'yyyy-mm-dd') as write_date
+					, brd_hit_count
+					, brd_type
+					, file_no
+				from board
+				where brd_type = 'BRD001'
+				and 1 = 1
+				<include refid="academicPSearch" />
+				order by brd_no desc
+			) a
+		) b
+		<![CDATA[
+			where b.rnum >= #{pagingVO.startRow} and b.rnum <= #{pagingVO.endRow}
+		]]>
+	</select>
+
+	<select id="noticeWidget" resultType="boardVO">
+		select rownum, b.* 
+		from ( select * from board
+				where brd_type = 'BRD001' and 1 = 1
+				order by brd_no desc
+		) b
+		where <![CDATA[ rownum <= 3 ]]>
+	</select>
+	
+	<select id="noticeBoardListCnt" resultType="int">
+		select count(brd_no) from board where brd_type = 'BRD001' and 1 = 1
+		<include refid="academicPSearch" />
+	</select>
+	
+	<insert id="createNotice" parameterType="BoardVO">
+		insert into board (
+			brd_no
+			, mem_no
+			, brd_title
+			, brd_cont
+			, brd_writer
+			, write_date
+			, brd_hit_count
+			, brd_type
+		) values (
+			board_seq.nextval
+			, #{memNo}
+			, #{brdTitle}
+			, #{brdCont}
+			, #{brdWriter}
+			, sysdate
+			, 0
+			, 'BRD001'
+		)
+	</insert>
+	<select id="lostItems" resultType="boardVO" parameterType="GalleryPaginationVO">
+	SELECT
+	    b.*
+		FROM (
+			    SELECT
+			        a.*, row_number() over (order by a.brd_no desc) rnum
+			    FROM (
+			        SELECT
+			            board.brd_no
+			            , board.brd_title
+			            , board.brd_cont
+			            , files.file_no
+			            , files.file_path
+			            , files.file_name
+			        FROM board
+			        JOIN files ON board.file_no = files.file_no
+			        WHERE board.brd_type = 'BRD002' 
+			        AND 1 = 1
+	   			 ) a
+				) b
+		<![CDATA[
+		    WHERE b.rnum >= #{startRow} AND b.rnum <= #{endRow}
+		]]>
+	</select>
+
+	<select id="selectNotice" parameterType="int" resultType="BoardVO">
+		select 
+			brd_no
+			, mem_no
+			, brd_title
+			, brd_cont
+			, brd_writer
+			, write_date
+			, brd_hit_count
+			, brd_type
+			, file_no
+		from board
+		where brd_no = #{brdNo}
+		  and brd_type = 'BRD001'
+	</select>
+	
+	<delete id="deleteNotice" parameterType="int">
+		delete 
+		from board 
+		where brd_no = #{brdNo} 
+		  and brd_type = 'BRD001'
+	</delete>
+	
+	<update id="modifyNotice" parameterType="BoardVO">
+		update board 
+		set 
+			brd_title = #{brdTitle},
+			brd_cont = #{brdCont},
+			brd_hit_count = 0,
+			write_date = sysdate
+		where brd_no = #{brdNo}
+		  and brd_type = 'BRD001'
+	</update>
+	
+	<!-- 공지사항 끝 -->
+
+	<!-- <select id="lostItems" resultType="boardVO">
+		SELECT
+			board.brd_no
+			, board.brd_title
+			, board.brd_cont
+			, files.file_no
+            , files.file_path
+            , files.file_name
+		FROM board join files on board.file_no = files.file_no
+		WHERE 
+			brd_type = 'BRD002'
+	</select> -->
+	
+	<select id="getBoardData" parameterType="int" resultType="BoardVO">
+		select 
+			brd_no
+			, mem_no
+			, brd_title
+			, brd_cont
+			, brd_writer
+			, to_char(write_date, 'yyyy-mm-dd') as write_date
+			, brd_hit_count
+			, brd_type
+			, file_no
+		from board
+		where brd_no = #{brdNo}
+	</select>
+	
+	<update id="boardCountHit" parameterType="int">
+		update board 
+		set 
+			brd_hit_count = brd_hit_count +1
+		where 
+			brd_no = #{brdNo}
+	</update>
+	
+	<insert id="insertLostItem" parameterType="BoardVO">
+		<selectKey keyProperty="brdNo" resultType="int" order="BEFORE">
+			select seq_item.nextval from dual
+		</selectKey>
+		INSERT INTO board (
+	    brd_no
+	    ,mem_no
+	    ,brd_title
+	    ,brd_cont
+	    ,write_date
+	    ,brd_hit_count
+	    ,brd_type
+	    ,file_no
+	)
+	VALUES (
+	    #{brdNo}
+	    ,#{memNo}
+	    ,#{brdTitle}
+	    ,#{brdCont}
+	    ,sysdate
+	    ,#{brdHitCount}
+	    ,#{brdType}
+	    ,#{fileNo}
+	)
+	</insert> 
+	
+	<!--대나무숲 게시판 리스트  -->
+<!-- 	<select id="anonyList" resultType="AnonymousBoardVO">
+		select
+			anon_brd_no, anon_brd_title, anon_brd_cont, anon_write_date, anon_hit_count
+		from anonymous_board
+	</select> -->
+
+	<!-- 익명 게시판 상세 -->
+  	<select id="anonyDetail" parameterType="int" resultType="AnonymousBoardVO">
+		select
+			ab.anon_brd_no, anon_brd_title, 
+			ab.mem_no, anon_brd_cont, 
+			anon_write_date, anon_hit_count,
+			max(anon_rp_writer) as lastWriter
+			
+		from anonymous_board ab
+			left outer join anonymous_reply ar on (ab.anon_brd_no = ar.anon_brd_no)
+		where 
+			ab.anon_brd_no = #{anonBrdNo}
+		GROUP BY
+    		ab.anon_brd_no, ab.mem_no, anon_brd_title, 
+    		anon_brd_cont, anon_write_date, anon_hit_count
+    		
+	</select>
+	
+	<insert id="insert" parameterType="AnonymousBoardVO" useGeneratedKeys="true">
+		<selectKey keyProperty="anonBrdNo" resultType="int" order="BEFORE">
+			select anonymous_board_seq.nextval from dual
+		</selectKey>
+		
+		insert into anonymous_board(
+			anon_brd_no, mem_no, anon_brd_title, anon_brd_cont,  anon_write_date, anon_hit_count
+		) values (
+			#{anonBrdNo}, #{memNo}, #{anonBrdTitle}, #{anonBrdCont}, sysdate, 0
+		)
+	</insert>
+	
+	<delete id="delete" parameterType="int">
+	 delete from anonymous_board where anon_brd_no = #{anonBrdNo}
+	</delete>
+	
+	<sql id="anonySearch">
+		<if test="searchType != null and searchType == 'anonBrdTitle'">
+			and (anon_brd_title like '%'||#{searchWord}||'%')
+		</if>
+		<if test="searchType != null and searchType == 'anonBrdCont'">
+			and (anon_brd_cont like '%'||#{searchWord}||'%')
+			
+		</if>
+	</sql>
+	<!--검색 페이징  -->
+	<select id="anonyList" parameterType="PaginationVO" resultType="AnonymousBoardVO">
+	SELECT
+		b.*
+	FROM (
+		SELECT
+			a.*, row_number() over (ORDER BY a.anon_brd_no DESC) rnum
+		FROM (
+			SELECT 
+				*
+			FROM anonymous_board
+			WHERE 1 = 1
+			<include refid="anonySearch" />
+			ORDER BY anon_brd_no DESC
+		) a
+	) b
+	<![CDATA[
+		WHERE b.rnum >= #{startRow} AND b.rnum <= #{endRow}
+	]]>
+</select>
+
+	
+	<!-- <select id="anonyList" parameterType="PaginationVO" resultType="AnonymousBoardVO">
+		select
+			b.*
+		from (
+			select
+				a.*, row_number() over (order by a.anon_brd_no desc) rnum
+			from (
+				select 
+					*
+				from anonymous_board
+				where 1 = 1
+				<include refid="anonySearch" />
+				order by anon_brd_no desc
+			) a
+		) b
+		<![CDATA[
+			where b.rnum >= #{startRow} and b.rnum <= #{endRow}
+		]]>
+	</select> -->
+	
+	<select id="anonyCount" resultType="int" parameterType="PaginationVO">
+		select count(anon_brd_no) from anonymous_board 
+		where 1=1
+		<include refid="anonySearch" />
+	</select>
+		
+		<!-- 댓글 목록을 가져오는 쿼리 -->
+	<select id="getAnonComments" resultType="AnonymousReplyVO" parameterType="int">
+	    select 
+	    	anon_rp_no
+			, anon_brd_no
+			, mem_no
+			, anon_rp_writer
+			, anon_rp_cont
+			, anon_rp_write_date
+	    from anonymous_reply
+	    where 
+	    	anon_brd_no = #{anonBrdNo} 
+	    order by anon_rp_write_date ASC
+	</select>
+	
+	<!-- 댓글을 추가하는 쿼리 -->
+	<insert id="addAnonComment" parameterType="AnonymousReplyVO">
+	    insert into anonymous_reply 
+	    (
+	    	anon_rp_no
+			, anon_brd_no
+			, mem_no
+			, anon_rp_writer
+			, anon_rp_cont
+			, anon_rp_write_date
+	    ) values (
+	    	anonymous_reply_seq.nextval
+	    	, #{anonBrdNo}
+	    	, #{memNo}
+	    	, #{anonRpWriter}
+	    	, #{anonRpCont}
+	    	, sysdate
+	    )
+	</insert>
+	
+	<update id="anonIncHitCount" parameterType="int">
+		update anonymous_board 
+		set 
+			anon_hit_count = anon_hit_count +1
+		where 
+			anon_brd_no = #{anonBrdNo}
+	</update>
+	
+	<!-- 댓글을 수정하는 쿼리 -->
+	<update id="updateComment" parameterType="kr.or.ddit.vo.ReplyVO">
+	    update reply set rp_cont = #{rpCont} where rp_no = #{rpNo}
+	</update>
+	
+	<!-- 댓글을 삭제하는 쿼리 -->
+	<delete id="deleteComment">
+	    delete 
+	    from anonymous_reply 
+	    where 
+	    anon_rp_no = #{anonRpNo}
+	</delete>	
+	
+	<select id="lostItemListCnt" resultType="int" parameterType="GalleryPaginationVO">
+		SELECT COUNT(brd_no) 
+		FROM board 
+		WHERE 1=1
+		  AND brd_type = 'BRD002'
+	</select>
+	
+</mapper>

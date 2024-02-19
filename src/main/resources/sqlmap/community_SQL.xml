@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.ICommunityMapper">
+	
+	<sql id="commnuSearch">
+		<if test="searchType != null and searchType == 'type'">
+			and (cm_name like '%'||#{searchWord}||'%')
+		</if>
+		<if test="searchType != null and searchType == 'master'">
+			and (cm_master like '%'||#{searchWord}||'%')
+		</if>
+	</sql>
+
+	<resultMap type="CommunityVO" id="CommunityMap">
+		<id property="cmNo" column="cm_no"/>
+		<result property="memNo" column="mem_no"/>
+		<result property="cmName" column="cm_name"/>
+		<result property="cmMaster" column="cm_master"/>
+		<result property="cmMaxMem" column="cm_max_mem"/>
+		<result property="cmType" column="cm_type"/>
+		<result property="cmGoal" column="cm_goal"/>
+		<result property="cmOpenStatusCode" column="cm_open_status_code"/>
+		
+		<collection property="cmMemberList" resultMap="cmMemberMap" columnPrefix="cmm_"/>
+	</resultMap>
+	
+	<resultMap type="CommunityMemberVO" id="cmMemberMap">
+		<id property="cmMemNo" column="cm_mem_no"/>
+		<result property="memNo" column="mem_no"/>
+		<result property="cmNo" column="cm_no"/>
+		<result property="memName" column="mem_name"/>
+		<result property="memId" column="mem_id"/>
+		<result property="dprtName" column="dprt_name"/>
+	</resultMap>
+	
+
+	<select id="getCmDetail" parameterType="int" resultMap="CommunityMap">
+		SELECT
+		    cm.cm_no
+		    ,cm.mem_no as master
+		    ,cm.cm_name
+		    ,cm.cm_master
+			,cm.cm_max_mem
+			,cm.cm_type
+			,cm.cm_goal
+			,cm.cm_open_status_code
+			
+		    ,cb.cm_mem_no as cmm_cm_mem_no
+		    ,cb.mem_no as cmm_mem_no
+		    ,cb.cm_no as cmm_cm_no
+		    
+		    ,mm.mem_name as cmm_mem_name
+		    ,mm.mem_id as cmm_mem_id
+            ,dp.dprt_name as cmm_dprt_name
+		FROM member mm, department dp, community cm
+		    LEFT OUTER JOIN community_member cb ON(cm.cm_no = cb.cm_no)
+		WHERE
+		    cm.cm_no = #{cmNo }
+		    and mm.mem_no = cb.mem_no
+		    and mm.dprt_no = dp.dprt_no
+	</select>
+	
+	<select id="getCmChatList" parameterType="int" resultType="CommunityChatRecordVO">
+		select
+			chat_no
+			,cm_no
+			,chat_msg
+			,chat_sender
+			,chat_date
+			,file_no
+			,mem_no
+		from community_chat_record
+		where 
+			cm_no = #{cmNo }
+		order by chat_no ASC
+	</select>
+
+	<select id="list" resultType="CommunityVO" parameterType="PaginationVO">
+		 select b.*
+	  		  from (
+	        select a.*, row_number() over (order by a.cm_no desc) rnum
+	        from (
+	            select 
+				    cm.cm_no,
+				    cm.mem_no,
+				    cm_name,
+				    cm_master,
+				    cm_max_mem,
+				    cm_type,
+				    cm_goal,
+				    cm_open_status_code,
+				    
+				    count(cmm.CM_MEM_NO) as cm_count
+				from community cm
+				left outer join COMMUNITY_MEMBER cmm on (cm.cm_no = cmm.cm_no)
+				where cm_open_status_code = 'CMO002'
+	            	<include refid="commnuSearch" />
+				group by
+				    cm.cm_no,
+				    cm.mem_no,
+				    cm_name,
+				    cm_master,
+				    cm_max_mem,
+				    cm_type,
+				    cm_goal,
+				    cm_open_status_code
+	            	order by cm.cm_no desc
+	        ) a
+	    ) b
+	    <![CDATA[
+	        where b.rnum >= #{startRow} and b.rnum <= #{endRow}
+	    ]]>
+	</select>
+		  <!-- 'CMO002' -->
+			
+	<select id="myCommunityList"  resultType="CommunityVO" parameterType="hashMap">
+		select b.*
+  			from (
+   			   select a.*, row_number() over (order by a.cm_no desc) rnum
+   		   from (
+      		    select 
+      		        cm_no,mem_no,cm_name,
+        			    cm_master,cm_max_mem,
+        		     	cm_type,cm_goal,
+              		cm_open_status_code
+          	from community
+        		where mem_no =#{memNo}
+          order by cm_no desc
+      ) a
+    ) b
+    <![CDATA[
+        where b.rnum >= #{pagingVO.startRow} and b.rnum <= #{pagingVO.endRow}
+    ]]>
+    
+	</select>
+	
+	<select id="myRegCmList" parameterType="int" resultType="CommunityMemberVO">
+		select 
+			cm_mem_no
+			, mem_no
+			, cm_no
+		from community_member
+			where mem_no = #{memNo}
+	</select>
+		
+	<select id="communityAllCount" resultType="int" parameterType="PaginationVO">
+		select count(cm_no) from community where cm_open_status_code ='CMO002' and 1 = 1
+		<include refid="commnuSearch"/>
+	</select>	
+		
+	<select id="myCommunityListCount" resultType="int">
+		select count(cm_no) from community 
+	</select>
+		
+	
+	<insert id="insert" parameterType="CommunityVO" useGeneratedKeys="true">
+		<selectKey keyProperty="cmNo" resultType="int" order="BEFORE">
+			select community_seq.nextval from dual
+		</selectKey>
+		insert into community(
+			cm_no,
+			mem_no,
+			cm_name,
+			cm_master,
+			cm_max_mem,
+			cm_type,
+			cm_goal,
+			cm_open_status_code
+		)values(
+			#{cmNo}
+			, #{memNo}
+			, #{cmName}
+			, #{cmMaster}
+			, #{cmMaxMem}
+			, #{cmType}
+			,#{cmGoal}
+			, 'CMO002'
+		)
+	
+	</insert>
+
+
+	<select id="communDetail" parameterType="int" resultType="CommunityVO">
+		select 
+			cm_no,
+			mem_no,
+			cm_name,
+			cm_master,
+			cm_max_mem,
+			cm_type,
+			cm_goal,
+			cm_open_status_code
+		from community
+		where cm_no = #{cmNo}
+		
+	</select>
+	
+	<update id="commuUpdate" parameterType="CommunityVO">
+		update community
+		set
+			cm_type =#{cmType},
+			cm_name =#{cmName},
+			cm_goal =#{cmGoal},
+			cm_max_mem =#{cmMaxMem}
+		where cm_no = #{cmNo}
+	</update>
+	
+	<update id="communStatus" parameterType="CommunityVO">
+		update community
+		set
+			cm_open_status_code = 'CMO003'
+		where cm_no = #{cmNo}
+	</update>
+
+
+	<insert id="applyForCoummnity" parameterType="CommunityMemberVO">
+		insert into community_member(
+			cm_mem_no
+			,mem_no
+			,cm_no
+		)values(
+			community_member_seq.nextval
+			, #{memNo}
+			, #{cmNo}
+		)
+	</insert>
+
+	<select id="duplCmMember" parameterType="CommunityMemberVO" resultType="int">
+		SELECT
+			count(*)
+		FROM community_member
+		WHERE 
+			mem_no = #{memNo}
+			and cm_no = #{cmNo}
+	</select>
+	
+	<select id="myCmApplyListCnt" parameterType="PaginationVO" resultType="int">
+		SELECT
+		    COUNT(cb.cm_no)
+		FROM
+		    community cm
+		LEFT OUTER JOIN
+		    community_member cb ON cm.cm_no = cb.cm_no
+		WHERE
+		    cb.mem_no = #{memNo}
+	</select>
+	
+	<select id="myCmApplyList" parameterType="PaginationVO" resultType="CommunityVO">
+		select b.*
+	  		from (
+				select a.*, row_number() over (order by a.cm_no desc) rnum
+		        from (
+		            SELECT
+					    cm.cm_no,
+					    cm.mem_no,
+					    cm.cm_name,
+					    cm.cm_master,
+					    cm.cm_max_mem,
+					    cm.cm_type,
+					    cm.cm_goal,
+					    cm.cm_open_status_code,
+					    COUNT(cb.CM_MEM_NO) AS cm_count
+					FROM
+					    community cm
+					LEFT OUTER JOIN
+					    community_member cb ON cm.cm_no = cb.cm_no
+					WHERE
+					    cb.mem_no = #{memNo}
+					GROUP BY
+					    cm.cm_no,
+					    cm.mem_no,
+					    cm.cm_name,
+					    cm.cm_master,
+					    cm.cm_max_mem,
+					    cm.cm_type,
+					    cm.cm_goal,
+					    cm.cm_open_status_code
+		        ) a
+	    	) b
+	    <![CDATA[
+	        where b.rnum >= #{startRow} and b.rnum <= #{endRow}
+	    ]]>
+	</select>
+	
+	<select id="myCmList" parameterType="int" resultType="CommunityVO">
+		select
+			cm_no
+			, mem_no
+			, cm_name
+			, cm_master
+			, cm_max_mem
+			, cm_type
+			, cm_goal
+			, cm_open_status_code
+		from community
+		where mem_no = #{memNo } 
+	</select>
+	
+	<delete id="removeApplyCommunity" parameterType="CommunityMemberVO">
+		DELETE
+		FROM community_member
+		WHERE 
+			mem_no = #{memNo}
+			and cm_no = #{cmNo }
+	</delete>
+	
+	<insert id="addRecord" parameterType="CommunityChatRecordVO">
+		insert into community_chat_record(
+			chat_no
+			, cm_no
+			, chat_msg
+			, chat_sender
+			, chat_date
+			, file_no
+			, mem_no
+		)values(
+			community_member_seq.nextval
+			, #{cmNo }
+			, #{chatMsg }
+			, #{chatSender }
+			, sysDate
+			, #{fileNo }
+			, #{memNo }
+		)
+	</insert>
+	
+	<!-- 
+	<select id="classScheduleList" parameterType="int" resultType="MyClassVO">
+		SELECT 
+			cl.class_no,
+		    cl.mem_no,
+		    ls.lec_sch_no,
+		    to_char(ls.lec_start_date, 'yyyy-MM-dd HH24:mi:ss') as lec_start_date,
+		    to_char(ls.lec_end_date, 'yyyy-MM-dd HH24:mi:ss') as lec_end_date,
+		    ls.lec_dow_code,
+		    ls.lec_start_time,
+		    ls.lec_end_time,
+		    room_no,
+		    class_name,
+		    semester,
+		    class_total_time,
+		    class_week_cnt,
+		    class_note,
+		    class_reject,
+		    li.class_score,
+		    li.ls_status_code
+		FROM 
+			listener li
+		    left outer join class cl on(cl.class_no = li.class_no)
+		    left outer join lecture_schedule ls on (cl.class_no = ls.class_no)
+		WHERE
+			li.mem_no = #{memNo} and
+			li.ls_status_code = 'LSS002'
+	</select>
+	 -->
+	<!-- 
+	<select id="memberSutList" resultType="MemberStdVO">
+		select
+			mem_no,
+			mem_id,
+			mem_name,
+			mem_gen,
+			mem_email,
+			mem_ph,
+			mem_role
+		from member
+		where
+			mem_role = 'ROL001'
+	</select>
+	 -->
+	 
+	<!-- 내 일정 -->
+	<select id="scheduleList" parameterType="MyClassVO" resultType="MyClassVO">
+		SELECT 
+			cl.class_no,
+		    li.mem_no,
+		    m.dprt_no,
+		    m.mem_id,
+		    m.mem_name,
+		    m.mem_ph,
+		    m.mem_email,
+		    ls.lec_sch_no,
+		    ls.lec_dow_code,
+		    to_char(ls.lec_start_date, 'yyyy-MM-dd HH24:mi:ss') as lec_start_date,
+		    to_char(ls.lec_end_date, 'yyyy-MM-dd HH24:mi:ss') as lec_end_date,
+		    ls.lec_start_time,
+		    ls.lec_end_time,
+		    room_no,
+		    class_name,
+		    semester,
+		    li.ls_status_code,
+		    sd.sch_name,
+		    sd.sch_start,
+		    sd.sch_end,
+		    sd.sch_data_code,
+		    sd.sch_start_time,
+		    sd.sch_end_time
+		FROM 
+			listener li, class cl, lecture_schedule ls, member m, schedule_data sd
+		WHERE
+			li.mem_no = m.mem_no and
+		    cl.class_no = li.class_no and
+		    cl.class_no = ls.class_no and
+		    m.mem_no = #{memNo} and
+		    li.ls_status_code = 'LSS002' and
+   			li.mem_no = sd.mem_no
+		    <!-- select * schedule_data where mem_no = #{memNo} -->
+	</select>
+
+	 
+	 <!-- 공유 일정(강의) -->
+	 <select id="classSchShare" resultType="MyClassVO" parameterType="MyClassVO">
+		SELECT
+			cl.class_no,
+			li.mem_no,
+			ls.lec_sch_no,
+			ls.lec_dow_code,
+			ls.lec_start_time,
+			ls.lec_end_time,
+			ls.lec_start_date,
+			ls.lec_end_date,
+			room_no,
+			class_name,
+			semester,
+			li.ls_status_code
+		FROM
+			listener li, class cl, lecture_schedule ls
+		WHERE
+			cl.class_no = li.class_no and
+			cl.class_no = ls.class_no and
+			li.mem_no =#{memNo} and
+			li.ls_status_code = 'LSS002'
+	</select>
+	
+	<!-- 공유 일정(일반) -->
+	<select id="scheduleShare" resultType="ScheduleDataVO" parameterType="ScheduleDataVO">
+		select
+		    sch_data_no,
+		    mem_no,
+		    sch_name,
+		    sch_start,
+		    sch_end,
+		    sch_start_time,
+		    sch_end_time,
+		    sch_data_code
+		from schedule_data 
+		where 
+			mem_no = #{memNo} and
+			(sch_data_code != 'SDC001')
+	</select>
+	
+	<!-- 커뮤니티 일정 생성 -->
+	<insert id="addCommunitySch" parameterType="ScheduleDataVO">
+		insert into schedule_data(
+		    sch_data_no,
+		    mem_no,
+		    sch_name,
+		    sch_start,
+		    sch_end,
+		    sch_data_code,
+		    sch_start_time,
+		    sch_end_time
+		) values(
+		    SCHEDULE_DATA_SEQ.nextval,
+		    #{memNo},
+		    #{schName},
+		    to_date(#{schStart}, 'yyyy-MM-dd HH24:mi'),
+		    to_date(#{schEnd}, 'yyyy-MM-dd HH24:mi'),
+		    'SDC004',
+		    #{schStartTime},
+		    #{schEndTime}
+		)
+	</insert>
+	 
+	 
+	 
+</mapper>

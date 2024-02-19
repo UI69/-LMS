@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IExampleMapper">
+
+	<resultMap type="ExampleVO" id="exampleMap">
+		<id property="examNo" column="exam_no"/>
+		<result property="classNo" column="class_no"/>
+		<result property="examName" column="exam_name"/>
+		<result property="examDate" column="exam_date"/>
+		<result property="examTime" column="exam_time"/>
+		<result property="examType" column="exam_type"/>
+		<result property="examTotalScore" column="exam_total_score"/>
+		<result property="examMarkType" column="exam_mark_type"/>
+		
+		<result property="className" column="class_name"/>
+		
+		<collection property="examQstList" resultMap="exQstMap"/>
+	</resultMap>
+	
+	<resultMap type="ExampleQuestionVO" id="exQstMap">
+		<result property="examQstNo" column="exam_qst_no"/>
+		<result property="examNo" column="exam_no"/>
+		<result property="qstNo" column="qst_no"/>
+		<result property="examQst" column="exam_qst"/>
+		<result property="qstScore" column="qst_score"/>
+		<result property="qstType" column="qst_type"/>
+		<result property="qstCorrect" column="qst_correct"/>
+		<result property="fileNo" column="file_no"/>
+		
+		<collection property="qstChList" resultMap="qstChoiceMap" />
+	</resultMap>
+	
+	<resultMap type="QuestionChoiceVO" id="qstChoiceMap">
+		<result property="qstChNo" column="qst_ch_no"/>
+		<result property="examQstNo" column="exam_qst_no"/>
+		<result property="examNo" column="exam_no"/>
+		<result property="chNo" column="ch_no"/>
+		<result property="chStr" column="ch_str"/>
+	</resultMap>
+
+	<select id="getExam" parameterType="int" resultMap="exampleMap">
+		SELECT
+			ex.exam_no
+			, ex.class_no
+			, ex.exam_name
+			, ex.exam_date
+			, ex.exam_time
+			, ex.exam_type
+			, ex.exam_total_score
+			, ex.exam_mark_type
+			
+			, eq.exam_qst_no
+			, eq.qst_no
+			, eq.exam_qst
+			, eq.qst_score
+			, eq.qst_type
+			, eq.qst_correct
+			, eq.file_no
+			
+			, qc.qst_ch_no
+			, qc.ch_no
+			, qc.ch_str
+			
+			, cs.class_name
+            
+            , fl.file_name
+            , fl.file_path
+		FROM 
+			example ex
+            inner join example_question eq on (ex.exam_no = eq.exam_no)
+            inner join question_choice qc on (eq.exam_qst_no = qc.exam_qst_no)
+            inner join class cs on (ex.class_no = cs.class_no)
+			left outer join files fl on (eq.file_no = fl.file_no)
+		WHERE ex.exam_no = #{examNo }
+        ORDER BY qst_no ASC, ch_no ASC
+	</select>
+	
+	<insert id="addExamAnswer" parameterType="ExamAnswerVO">
+		insert into exam_answer (
+			answer_no
+			, exam_qst_no
+			, exam_no
+			, mem_no
+			, answer
+			, answer_date
+			, get_score
+		) values (
+			exam_answer_seq.nextval
+			, #{examQstNo} 
+			, #{examNo}
+			, #{memNo}
+			, #{answer}
+			, TO_DATE(#{answerDate}, 'YYYY-MM-DD HH24:MI:SS')
+			, #{getScore }
+		)
+	</insert>
+	
+</mapper>

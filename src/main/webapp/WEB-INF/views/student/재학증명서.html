@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style type="text/css">
+      * {
+        box-sizing: border-box;
+        -moz-box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      .page {
+        width: 21cm;
+        height: 29.7cm;
+        padding: 1.5cm 1.5cm 2cm 1.5cm;
+        border: 1px solid #ccc;
+        position: relative;
+      }
+      @media print {
+        .page {
+          margin: 0;
+          border: initial;
+          border-radius: initial;
+          width: initial;
+          min-height: initial;
+          box-shadow: initial;
+          background: initial;
+          page-break-after: always;
+        }
+      }
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      .box {
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        table-layout: fixed;
+        position: relative;
+        border-style: double;
+        border-width: 7px;
+        border-color: #828282;
+      }
+      .box > * {
+        position: absolute;
+      }
+      .header {
+        top: 5%;
+        left: 5%;
+      }
+      .title {
+        top: 10%;
+        left: 50%;
+        transform: translate(-50%, -10%);
+      }
+      .userData {
+        top: 20%;
+        right: 15%;
+        text-align: left !important;
+      }
+      .userTitle {
+        display: inline-flex;
+        justify-content: space-between;
+        width: 100px;
+        letter-spacing: 3px;
+      }
+      table { 
+        width: 100%;
+        max-height: 40%;
+        top: 38%;
+      }
+      td {
+        padding: 15px;
+      }
+      thead {
+        background-color: #ccc;
+      }
+      .footer {
+        display: flex;
+        flex-direction: column;
+        bottom: 3%;
+        left: 0;
+        width: 100%;
+        height: 20%;
+      }
+      .footer > * {
+        width: 100%;
+      }
+      .dojang {
+        bottom: 3%;
+        right: 25%;
+      }
+      .dojang img {
+        width: 100px;
+        height: 100px;
+        opacity: 0.7;
+      }
+      .logo {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: -1;
+      }
+      .logo img {
+        width: 550px;
+        height: 550px;
+        opacity: 0.3;
+      }
+    </style>
+
+    <title>재학증명서</title>
+  </head>
+  <body>
+    <div class="page">
+      <div class="box">
+        <div class="header">
+          <p>제 2024-049589 호</p>
+        </div>
+        <div class="title">
+          <h1>재 학 증 명 서</h1>
+        </div>
+        <div class="userData">
+          <p>
+            <span class="userTitle"><span>성</span><span>명</span></span> :
+            <span>홍길동</span>
+          </p>
+          <p>
+            <span class="userTitle"><span>생년</span><span>월일</span></span> :
+            <span>2000.01.01</span>
+          </p>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <td colspan="">대학</td>
+              <td colspan="">학부</td>
+              <td colspan="">전공</td>
+              <td colspan="">입학년월일</td>
+            </tr>
+          </thead>
+          <tr>
+            <td>문과사회과학대학</td>
+            <td>국제학부</td>
+            <td>일본학전공</td>
+            <td>2020.01.01</td>
+          </tr>
+        </table>
+
+        <div class="footer"> 
+           <p>위 사실을 증명합니다.</p> 
+           <p>2024년 01월 12일</p>
+           
+           <h2>대 육 대 학 교 총 장</h2>
+        </div>
+
+       <div class="dojang">
+          <img src="${pageContext.request.contextPath}/resources/images/dojang.png" alt="" />
+        </div>
+
+        
+        <div class="logo">
+          <img src="${pageContext.request.contextPath}/resources/images/logo.png" alt="">
+      </div>
+      </div>
+    </div>
+  </body>
+</html>

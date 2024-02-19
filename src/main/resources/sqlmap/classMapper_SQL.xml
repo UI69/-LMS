@@ -1,0 +1,682 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IClassMapper">
+
+	<resultMap type="classVO" id="classResultMap">
+	  <id property="classNo" 			column="classNo"/>
+	  
+	  <result property="classNo" 		column="class_no"/>
+	  <result property="lecNo" 			column="lec_no"/>
+	  <result property="memNo" 			column="mem_no"/>
+	  <result property="roomNo" 		column="room_no"/>
+	  <result property="valueType" 		column="value_type"/>
+	  <result property="className" 		column="class_name"/>
+	  <result property="lecPoint" 		column="lec_point"/>
+	  <result property="semester" 		column="semester"/>
+	  <result property="classReqCode" 	column="class_req_code"/>
+	  <result property="classMaxMem" 	column="class_max_mem"/>
+	  <result property="classTotalTime" column="class_total_time"/>
+	  <result property="examProprion" 	column="exam_proprion"/>
+	  <result property="hwPropotion" 	column="hw_propotion"/>
+	  <result property="atPropotion" 	column="at_propotion"/>
+	  <result property="classStatusCode" column="class_status_code"/>
+	  <result property="classWeekCnt" 	column="class_week_cnt"/>
+	  <result property="classNote" 		column="class_note"/>
+	  <result property="classReject" 	column="class_reject"/>
+	  <result property="fileNo" 		column="file_no"/>
+	  
+	  <association property="memberVO" javaType="MemberVO">
+		<result property="memNo" column="mem_no" />
+		<result property="memName" column="mem_name" />
+	  </association>
+	  
+	  <association property="roomVO" javaType="RoomVO">
+	  	<result	property="roomNo"		column="room_no" 	/>
+		<result	property="buildingNo"	column="building_no" />
+		<result property="roomName"		column="room_name" 	/>
+		<result property="roomCap"		column="room_cap" 	/>
+	  </association>
+	  
+	  <association property="listenerVO" javaType="ListenerVO">
+	  	<result property="listenNo" column="listen_no"/>
+		<result property="classNo" column="class_no"/>
+		<result property="memNo" column="mem_no"/>
+		<result property="classScore" column="class_score"/>
+		<result property="lsStatusCode" column="ls_status_code"/>
+	  </association>
+	  
+	  <collection property="lectureList" 		resultMap="lectureResultMap"/>
+	  <collection property="departmentList" 	resultMap="departmentResultMap"/>
+	  <collection property="lecScheduleList" 	resultMap="lectureScheduleResultMap"/>
+	  
+	</resultMap>
+	
+	<resultMap type="lectureVO" id="lectureResultMap">
+		<result property="lecNo" 	column="lec_no"/>
+		<result property="memNo" 	column="mem_no"/>
+		<result property="dprtNo" 	column="dprt_no"/>
+		<result property="lecName" 	column="lec_name"/>
+		<result property="lecPoint" column="lec_point"/>
+		<result property="lecNote" 	column="lec_note"/>
+	</resultMap>
+	
+	<resultMap type="departmentVO" id="departmentResultMap">
+		<result property="dprtNo" 			column="dprt_no"/>
+		<result property="dprtName" 		column="dprt_name"/>
+		<result property="dprtCategory" 	column="dprt_category"/>
+		<result property="dprtTuition" 		column="dprt_tuition"/>
+		<result property="dprtSrvTime" 		column="dprt_srvTime"/>
+		<result property="dprtLecPoint" 	column="dprt_lec_point"/>
+		<result property="semMaxLecPoint" 	column="sem_max_lec_point"/>
+	</resultMap>
+	
+	<resultMap type="lectureScheduleVO" id="lectureScheduleResultMap">
+		<result property="lecSchNo" 	column="lec_sch_no"/>
+		<result property="classNo" 		column="class_no"/>
+		<result property="lecStartDate" column="lec_start_date"/>
+		<result property="lecDowCode" 	column="lec_dow_code"/>
+		<result property="lecStartTime" column="lec_start_time"/>
+		<result property="lecEndDate" 	column="lec_end_date"/>
+		<result property="lecEndTime" 	column="lec_end_time"/>
+	</resultMap>
+	
+	<sql id="classOpenSearch">
+		<if test="pagingVO.searchType != null and pagingVO.searchType == 'className'">
+			and (class_name like '%'||#{pagingVO.searchWord}||'%')
+		</if>
+		<if test="pagingVO.searchType != null and pagingVO.searchType == 'lecName'">
+			and (l.lec_name like '%'||#{pagingVO.searchWord}||'%')
+		</if>
+		<if test="pagingVO.searchType != null and pagingVO.searchType == 'semester'">
+			and (semester like '%'||#{pagingVO.searchWord}||'%')
+		</if>
+	</sql>
+
+	<select id="getMyMember" resultType="MemberVO" parameterType="int">
+		SELECT
+			mem_no
+		  , dprt_no
+		  , mem_id
+		  , mem_pw
+		  , mem_name
+		  , mem_gen
+		  , mem_bir
+		  , mem_ph
+		  , mem_email
+		  , mem_postcode
+		  , mem_addr1
+		  , mem_addr2
+		  , otp_key
+		  , mem_profile
+		  , mem_nation_code
+		  , mem_temp_pw
+		  , mem_role
+		FROM member
+		WHERE mem_no = #{memNo}
+	</select>
+
+	<select id="getMyLecture" resultType="MyClassVO" parameterType="int">
+		SELECT 
+		    cl.class_no
+		    , cl.lec_no
+		    , cl.mem_no
+		    , room_no
+		    , value_type
+		    , class_name
+		    , cl.lec_point
+		    , semester
+		    , class_req_code
+		    , class_max_mem
+		    , class_total_time
+		    , exam_proprion
+		    , hw_propotion
+		    , at_propotion
+		    , class_status_code
+		    , class_week_cnt
+		    , class_note
+		    , class_reject
+		    
+		    , dp.dprt_category
+		    , dp.dprt_name
+		    
+		    , count (li.listen_no) as class_reg_cnt
+		FROM class cl
+		inner join lecture lc on (lc.lec_no = cl.lec_no)
+		inner join department dp on (dp.dprt_no = lc.dprt_no)
+		left outer join listener li on (cl.class_no = li.class_no)
+		WHERE
+		    cl.class_no = #{classNo }
+		GROUP BY
+		    cl.class_no
+		    , cl.lec_no
+		    , cl.mem_no
+		    , room_no
+		    , value_type
+		    , class_name
+		    , cl.lec_point
+		    , semester
+		    , class_req_code
+		    , class_max_mem
+		    , class_total_time
+		    , exam_proprion
+		    , hw_propotion
+		    , at_propotion
+		    , class_status_code
+		    , class_week_cnt
+		    , class_note
+		    , class_reject
+		    , dp.dprt_category
+		    , dp.dprt_name
+					
+	</select>
+	
+	
+	
+	<select id="getMyLectureList" parameterType="int" resultType="MyClassVO">
+		SELECT 
+			cl.class_no
+			, cl.lec_no
+			, cl.mem_no
+			, room_no
+			, value_type
+			, class_name
+			, cl.lec_point
+			, semester
+			, class_req_code
+			, class_max_mem
+			, class_total_time
+			, exam_proprion
+			, hw_propotion
+			, at_propotion
+			, class_status_code
+			, class_week_cnt
+			, class_note
+			, class_reject
+			
+			, li.class_score
+			, li.ls_status_code
+			
+			, dp.dprt_category
+			, dp.dprt_name
+		FROM class cl, listener li, department dp, lecture lc
+		WHERE
+			cl.class_no = li.class_no
+			and lc.lec_no = cl.lec_no
+			and dp.dprt_no = lc.dprt_no
+			and li.mem_no = #{memNo }
+	</select>
+	
+	<select id="getClassBoardList" resultType="ClassBoardVO" parameterType="int">
+		SELECT
+			class_brd_no
+			, class_no
+			, class_brd_title
+			, class_write_date
+			, class_brd_hit_count
+			, cb.file_no
+			, file_name
+		FROM class_board cb
+			left outer join files fl on(cb.file_no = fl.file_no)
+		where
+			class_no = #{classNo }
+		ORDER BY class_brd_no DESC
+	</select>
+	
+	<select id="getHomeworkList" parameterType="int" resultType="HomeworkVO">
+		SELECT
+			hw.hw_no
+			, class_no
+			, hw_title
+			, hw_upload
+			, hw_date
+			, hw_cont
+			, hw.file_no
+			, file_name
+			
+			, count(hs.hw_sb_no) as hw_submit_cnt
+		FROM homework hw
+			LEFT OUTER JOIN homework_submit hs on (hw.hw_no = hs.hw_no)
+			LEFT OUTER JOIN files fl on (hw.file_no = fl.file_no)
+		where
+			class_no = #{classNo }
+		group by
+            hw.hw_no
+			, class_no
+			, hw_title
+			, hw_upload
+			, hw_date
+			, hw_cont
+			, hw.file_no
+			, file_name
+		ORDER BY hw_no DESC
+	</select>
+	
+	<select id="getExampleList" resultType="ExampleVO" parameterType="Map">
+		SELECT
+			exam_no
+			, class_no
+			, exam_name
+			, exam_date
+			, exam_time
+			, exam_type
+			, exam_total_score
+			, exam_mark_type
+		    , CASE
+		           WHEN (
+		                SELECT COUNT(*)
+		                FROM exam_answer 
+		                WHERE example.exam_no = exam_answer.exam_no AND exam_answer.mem_no = #{memNo}
+		           )<![CDATA[ > ]]> 0 THEN 'Y'
+		           ELSE 'N'
+		       END AS "exam_yn"
+		FROM example
+		where
+			class_no = #{classNo }
+		order by exam_no DESC
+	</select>
+	
+	<select id="getTrainingList" parameterType="int" resultType="TrainingVO">
+		SELECT
+			trn_no
+			, class_no
+			, trn_name
+			, trn_society
+			, trn_status_code
+			, trn_max_mem
+			, trn_start_date
+			, trn_end_date
+			, trn_content
+		FROM training
+		where
+			class_no = #{classNo }
+	</select>
+	
+	<select id="classOpenCnt" resultType="int">
+		select count(c.class_no) 
+		from class c
+		INNER JOIN lecture l ON (c.lec_no = l.lec_no)
+		INNER JOIN department d ON (l.dprt_no = d.dprt_no)
+		where c.mem_no = #{memNo} and 1 = 1
+		<include refid="classOpenSearch" />
+	</select>
+	
+	<select id="classOpenList" resultMap="classResultMap">
+		SELECT B.* FROM (
+			SELECT A.*, ROW_NUMBER() OVER (ORDER BY A.class_no DESC) RNUM FROM (
+				SELECT c.class_no, c.lec_no, c.mem_no, c.room_no, c.value_type,
+				       c.class_name, c.lec_point, c.semester, c.class_req_code,
+				       c.class_max_mem, c.class_total_time, c.exam_proprion, c.hw_propotion,
+				       c.at_propotion, c.class_status_code, c.class_week_cnt, c.class_note,
+				       c.class_reject, c.file_no,
+				       l.lec_name AS lec_name,
+				       d.dprt_name AS dprt_name
+				FROM class c
+					INNER JOIN lecture l ON (c.lec_no = l.lec_no)
+					INNER JOIN department d ON (l.dprt_no = d.dprt_no)
+				WHERE c.mem_no = #{memNo}
+				AND 1 = 1
+				<include refid="classOpenSearch" />
+				ORDER BY class_no DESC
+			) A
+		) B
+		<![CDATA[
+			WHERE B.RNUM >= #{pagingVO.startRow} and B.RNUM <= #{pagingVO.endRow}
+		]]>
+	</select>
+	
+	<select id="getClassBoard" parameterType="int" resultType="ClassBoardVO">
+		SELECT
+			class_brd_no
+			, class_no
+			, class_brd_title
+			, class_brd_cont
+			, class_write_date
+			, class_brd_hit_count
+			, cb.file_no
+			, file_name
+		FROM class_board cb
+			left outer join files fl on(cb.file_no = fl.file_no)
+		WHERE
+			class_brd_no = #{classBrdNo }
+	</select>
+	
+	
+	<update id="incrementClassBrdHit" parameterType="int">
+		UPDATE class_board
+		SET
+		class_brd_hit_count = class_brd_hit_count + 1
+		WHERE 
+		class_brd_no = #{classBrdNo}
+	</update>
+	
+	
+	<insert id="insertHomework" parameterType="homeworkSubmitVO" useGeneratedKeys="true">
+		 <selectKey resultType="int" keyProperty="hwSbNo" order="BEFORE">
+      	 	 SELECT seq_hw_sb_no.NEXTVAL FROM dual
+  		  </selectKey>
+	
+		INSERT INTO 
+   		homework_submit
+    (  
+    	hw_sb_no
+       ,mem_no
+       ,hw_no
+       ,hw_sb_date
+       ,hw_sb_status_code
+       ,hw_content
+       ,hw_score
+       ,file_no 
+     )
+    VALUES 
+    ( 
+      #{hwSbNo}
+     ,#{memNo}
+     ,#{hwNo}
+     ,sysdate
+     ,#{hwSbStatusCode}
+     ,#{hwContent}
+     ,#{hwScore}
+     ,#{fileNo}
+     )
+     
+	</insert>
+	
+
+	<!-- 강의 시간표 -->
+	<select id="classScheduleList" parameterType="int" resultType="MyClassVO">
+		SELECT 
+			cl.class_no,
+		    cl.mem_no,
+		    ls.lec_sch_no,
+		    to_char(ls.lec_start_date, 'yyyy-MM-dd HH24:mi:ss') as lec_start_date,
+		    to_char(ls.lec_end_date, 'yyyy-MM-dd HH24:mi:ss') as lec_end_date,
+		    ls.lec_dow_code,
+		    ls.lec_start_time,
+		    ls.lec_end_time,
+		    room_no,
+		    class_name,
+		    semester,
+		    class_total_time,
+		    class_week_cnt,
+		    class_note,
+		    class_reject,
+		    li.class_score,
+		    li.ls_status_code
+		FROM 
+			listener li
+		    left outer join class cl on(cl.class_no = li.class_no)
+		    left outer join lecture_schedule ls on (cl.class_no = ls.class_no)
+		WHERE
+			li.mem_no = #{memNo} and
+			li.ls_status_code = 'LSS002'
+	</select>
+	<!-- 강의 시간표 ajax -->
+	<select id="classScheduleList2" parameterType="MyClassVO" resultType="MyClassVO">
+		SELECT 
+			cl.class_no,
+		    li.mem_no,
+		    ls.lec_sch_no,
+		    to_char(ls.lec_start_date, 'yyyy-MM-dd HH24:mi:ss') as lec_start_date,
+		    to_char(ls.lec_end_date, 'yyyy-MM-dd HH24:mi:ss') as lec_end_date,
+		    ls.lec_dow_code,
+		    ls.lec_start_time,
+		    ls.lec_end_time,
+		    room_no,
+		    class_name,
+		    semester,
+		    class_total_time,
+		    class_week_cnt,
+		    class_note,
+		    li.class_score,
+		    li.ls_status_code
+		FROM 
+			listener li
+		    left outer join class cl on(cl.class_no = li.class_no)
+		    left outer join lecture_schedule ls on (cl.class_no = ls.class_no)
+		WHERE
+			li.mem_no = #{memNo} and
+			li.ls_status_code = 'LSS002'
+	</select>
+	
+	<select id="memberSutList" resultType="MemberStdVO">
+		select
+			mem_no,
+			mem_id,
+			mem_name,
+			mem_gen,
+			mem_email,
+			mem_ph,
+			mem_role
+		from member
+		where
+			mem_role = 'ROL001'
+	</select>
+	
+	<insert id="createClassOpen" parameterType="ClassVO">
+		<selectKey keyProperty="classNo" resultType="int" order="BEFORE">
+			select class_seq.nextval from dual
+		</selectKey>
+		insert into class 
+		(
+			class_no
+			, lec_no
+			, mem_no
+			, value_type
+			
+			, class_name
+			, lec_point
+			, semester
+			, class_req_code
+			, class_max_mem
+			
+			, class_total_time
+			, exam_proprion
+			, hw_propotion
+			, at_propotion
+			, class_status_code
+			
+			, class_week_cnt
+			, class_note
+			, file_no
+		)
+		values 
+		(
+			#{classNo}, 
+			#{lecNo}, 
+			#{memNo}, 
+			#{valueType}, 
+			
+			#{className}, 
+			#{lecPoint}, 
+			#{semester},
+			#{classReqCode}, 
+			#{classMaxMem}, 
+			
+			#{classTotalTime},
+			#{examProprion}, 	
+			#{hwPropotion}, 
+			#{atPropotion}, 
+			#{classStatusCode},
+			
+			#{classWeekCnt}, 
+			#{classNote}, 
+			#{fileNo}
+		)
+	</insert>
+	
+	<select id="getHomeworkSubmitList"  resultType="HomeworkSubmitVO" parameterType="map">
+		   SELECT 
+		    hw.hw_no
+		    ,class_no
+		    ,hw_title
+		    ,hw_upload
+		    ,hw_date
+		    ,hw_cont
+		    
+		    ,hw_sb_no
+		    ,mem_no
+		    ,hw_sb_date
+		    ,hw_sb_status_code
+		    ,hw_content
+		    ,hw_score
+		    
+		    ,fl.file_no
+		    ,fl.file_name
+		FROM homework hw, homework_submit hs
+		    left outer join files fl on (fl.file_no = hs.file_no)
+		where
+		    hs.mem_no = #{memNo }
+		    and hw.class_no = #{classNo}
+		    and hs.hw_no = hw.hw_no
+	</select>
+	
+	<!-- 진행 중(강의 중인) 강의 목록 리스트 -->
+	<select id="todayProcessClassListPro" resultMap="classResultMap" parameterType="int">
+		SELECT
+	      c.class_no
+	    , c.lec_no
+		, c.mem_no
+		, c.room_no
+	    , c.value_type
+	    , c.class_name
+	    , c.lec_point
+	    , c.semester
+	    , c.class_req_code
+	    , c.class_max_mem
+	    , c.class_total_time
+	    , c.exam_proprion
+	    , c.hw_propotion
+	    , c.at_propotion
+	    , c.class_status_code
+	    , c.class_week_cnt
+	    , c.class_note
+	    , c.class_reject
+	    , c.file_no
+	    
+	    , ls.LEC_SCH_NO
+	    , ls.CLASS_NO
+	    , ls.LEC_DOW_CODE
+	    , ls.LEC_START_DATE
+	    , ls.LEC_END_DATE
+	    , ls.LEC_START_TIME
+	    , ls.LEC_END_TIME
+	    
+		, r.room_no
+		, r.building_no
+		, r.room_name
+	    FROM class c
+	    INNER JOIN lecture_schedule ls ON (c.class_no = ls.class_no)
+	    INNER JOIN room r ON (c.room_no = r.room_no)	    
+	    WHERE 
+	        c.mem_no = #{memNo}
+	        AND c.class_status_code = 'CLS005'
+	        AND ls.lec_dow_code = 
+	    <![CDATA[
+            (SELECT 
+                CASE TO_CHAR(SYSDATE, 'DY')
+                    WHEN '월' THEN 'LDW001'
+                    WHEN '화' THEN 'LDW002'
+                    WHEN '수' THEN 'LDW003'
+                    WHEN '목' THEN 'LDW004'
+                    WHEN '금' THEN 'LDW005'
+                    WHEN '토' THEN 'LDW006'
+                    WHEN '일' THEN 'LDW007'
+                END AS lec_dow_code
+            FROM DUAL)
+            AND ls.LEC_START_DATE <= TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+        	AND ls.LEC_END_DATE >= TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+        ]]>
+	</select>
+	
+	<select id="todayProcessClassListStu" parameterType="int" resultMap="classResultMap">
+		SELECT 
+			  c.class_no
+		    , c.lec_no
+			, c.mem_no
+			, c.room_no
+		    , c.class_name
+		    , c.semester
+		    
+		    , ls.LEC_SCH_NO
+		    , ls.LEC_DOW_CODE
+		    , ls.LEC_START_DATE
+		    , ls.LEC_END_DATE
+		    , ls.LEC_START_TIME
+		    , ls.LEC_END_TIME
+		
+			, li.class_score
+			, li.ls_status_code
+			
+			, r.building_no
+			, r.room_name
+			
+			, m.mem_name
+		FROM class c
+		INNER JOIN lecture_schedule ls ON (c.class_no = ls.class_no)
+	    INNER JOIN room r ON (c.room_no = r.room_no)
+	    INNER JOIN listener li ON (c.class_no = li.class_no)
+	    INNER JOIN member m ON (m.mem_no = c.mem_no)
+		WHERE
+			li.mem_no = #{memNo}
+			AND li.ls_status_code = 'LSS002'
+			AND ls.lec_dow_code = 
+		<![CDATA[
+            (SELECT 
+                CASE TO_CHAR(SYSDATE, 'DY')
+                    WHEN '월' THEN 'LDW001'
+                    WHEN '화' THEN 'LDW002'
+                    WHEN '수' THEN 'LDW003'
+                    WHEN '목' THEN 'LDW004'
+                    WHEN '금' THEN 'LDW005'
+                    WHEN '토' THEN 'LDW006'
+                    WHEN '일' THEN 'LDW007'
+                END AS lec_dow_code
+            FROM DUAL)
+            AND ls.LEC_START_DATE <= TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+        	AND ls.LEC_END_DATE >= TO_CHAR(SYSDATE, 'YYYY-MM-DD')
+        ]]>
+	</select>
+	
+	<update id="updateHomeworkSb" parameterType="HomeworkSubmitVO">
+		 UPDATE homework_submit
+		    SET  
+			     hw_sb_date = sysdate
+			    ,hw_content = #{hwContent}
+			    ,file_no = #{fileNo}
+		    WHERE
+		     	hw_sb_no = #{hwSbNo}
+	</update>
+	<select id="homeworkSubmitDetail" resultType="HomeworkSubmitVO" parameterType="int">
+		SELECT
+			 h.hw_sb_no
+	        ,h.mem_no
+	        ,h.hw_no
+	        ,h.hw_sb_date
+	        ,h.hw_sb_status_code
+	        ,h.hw_content
+	        ,h.hw_score
+	        ,h.file_no
+            ,f.file_name
+	    FROM homework_submit h, files f
+	    WHERE 
+         	h.file_no = f.file_no
+	    and hw_sb_no = #{hwSbNo}
+	</select>
+	
+	<select id="getExampleQst" resultType="ExampleQuestionVO" parameterType="int">
+			SELECT
+		        exam_qst_no
+		        ,exam_no
+		        ,qst_no
+		        ,exam_qst
+		        ,qst_score
+		        ,qst_type
+		        ,qst_correct
+		        ,file_no
+		    FROM example_question
+		    where EXAM_QST_NO = #{examQstNo}
+	</select>
+	
+</mapper>

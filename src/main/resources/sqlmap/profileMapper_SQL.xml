@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IProfileMapper">
+
+	<resultMap type="MemberVO" id="stdMemberMap">
+		<id property="memNo" column="mem_no"/>
+		<result property="dprtNo" column="dprt_no"/>
+		<result property="memId" column="mem_id"/>
+		<result property="memPw" column="mem_pw"/>
+		<result property="memName" column="mem_name"/>
+		<result property="memGen" column="mem_gen"/>
+		<result property="memBir" column="mem_bir"/>
+		<result property="memPh" column="mem_ph"/>
+		<result property="memEmail" column="mem_email"/>
+		<result property="memPostcode" column="mem_postcode"/>
+		<result property="memAddr1" column="mem_addr1"/>
+		<result property="memAddr2" column="mem_addr2"/>
+		<result property="memProfile" column="mem_profile"/>
+		<result property="memNationCode" column="mem_nation_code"/>
+		
+		<association property="studentInfo" javaType="StudentInfoVO">
+			<result property="memRegDate" column="mem_reg_date"/>
+			<result property="memGrdDate" column="mem_grd_date"/>
+			<result property="memStatusCode" column="mem_status_code"/>
+			<result property="memStdGrade" column="mem_std_grade"/>
+		</association>
+		
+		
+		<association property="professorInfo" javaType="ProfessorInfoVO">
+			<result property="memJoinDate" column="mem_join_date"/>
+			<result property="memOutDate" column="mem_out_date"/>
+			<result property="memProCode" column="mem_pro_code"/>
+		</association>
+		
+		
+		<association property="staffInfo" javaType="StaffInfoVO">
+			<result property="memJoinDate" column="mem_join_date"/>
+			<result property="memOutDate" column="mem_out_date"/>
+			<result property="memPosCode" column="mem_pos_code"/>
+		</association>
+		
+		<association property="departmentVO" javaType="DepartmentVO">
+			<result property="dprtNo" column="dprt_no"/>
+			<result property="dprtName" column="dprt_name"/>
+			<result property="dprtCategory" column="dprt_category"/>
+		</association>
+		
+	</resultMap>
+
+
+
+
+	<!--   학생 상세 정보 profile -->
+	<select id="selectMember"  parameterType="string" resultMap="stdMemberMap">
+		 select
+		    m.mem_no,
+		    m.dprt_no,
+		    m.mem_id,
+		    m.mem_pw,
+		    m.mem_name,
+		    m.mem_gen,
+		    m.mem_bir,
+		    m.mem_ph,
+		    m.mem_email,
+		    m.mem_postcode,
+		    mem_profile,
+		    m.mem_addr1,
+		    m.mem_addr2,
+		    m.otp_key,
+		    m.mem_profile,
+		    m.mem_nation_code,
+		    m.mem_temp_pw,
+		    m.mem_role,
+		    d.dprt_no,
+		    
+		    si.mem_reg_date,
+		    si.mem_grd_date,
+		    si.mem_status_code,
+		    si.mem_std_grade
+		from
+		    member m
+		join
+		    student_info si on m.mem_no = si.mem_no
+		join 
+			DEPARTMENT d on m.dprt_no = d.dprt_no
+		where
+		    m.mem_id = #{memId}
+	</select>
+
+<!--교수 상세 정보  -->
+	<select id="proselectmember" parameterType="string" resultMap="stdMemberMap">
+		select
+		    m.mem_no,
+		    m.dprt_no,
+		    m.mem_id,
+		    m.mem_pw,
+		    m.mem_name,
+		    m.mem_gen,
+		    m.mem_bir,
+		    m.mem_ph,
+		    m.mem_email,
+		    m.mem_postcode,
+		    mem_profile,
+		    m.mem_addr1,
+		    m.mem_addr2,
+		    m.otp_key,
+		    m.mem_profile,
+		    m.mem_nation_code,
+		    m.mem_temp_pw,
+		    m.mem_role,
+		    pro.mem_join_date,
+		    pro.mem_out_date,
+		    pro.mem_pro_code,
+		    dp.dprt_name,
+		    dp.dprt_category
+		from
+		    member m
+		join
+		    professor_info pro on m.mem_no = pro.mem_no
+		join
+		    department dp on m.dprt_no = dp.dprt_no
+		where
+		    m.mem_id = #{memid}
+
+	</select>
+	
+	
+<!-- 관리자 상세 정보  -->
+
+	<select id="empselectmember" parameterType="string" resultMap="stdMemberMap">
+
+		select
+		    m.mem_no,
+		    m.dprt_no,
+		    m.mem_id,
+		    m.mem_pw,
+		    m.mem_name,
+		    m.mem_gen,
+		    m.mem_bir,
+		    m.mem_ph,
+		    m.mem_email,
+		    m.mem_postcode,
+		    mem_profile,
+		    m.mem_addr1,
+		    m.mem_addr2,
+		    m.otp_key,
+		    m.mem_profile,
+		    m.mem_nation_code,
+		    m.mem_temp_pw,
+		    m.mem_role,
+				    
+		    emp.mem_join_date,
+		    emp.mem_out_date,
+		    emp.mem_pos_code
+		    from
+		        member m
+		    join
+		        staff_info emp on m.mem_no = emp.mem_no
+		    where
+		       m.mem_id = #{memId}
+
+	</select>
+
+	<!-- 회원 상세 정보 변경 -->	
+	<update id="UpdProfilePro" parameterType="MemberVO">
+		update member
+		set
+			mem_pw = #{memPw},
+			mem_bir	= #{memBir},
+			mem_email = #{memEmail},
+			mem_ph = #{memPh},
+			mem_postcode = #{memPostcode},
+			mem_addr1 = #{memAddr1},
+			mem_addr2 = #{memAddr2},
+			mem_profile = #{memProfile },
+			mem_temp_pw = #{memTempPw }
+		where 
+			mem_id = #{memId}
+		
+	</update>
+
+	<!--내정보 2차 인증   -->
+	<select id="passCheck" parameterType="string" resultType="MemberVO">
+	select
+		mem_pw
+	from member
+	where mem_pw = ${memPw}
+	</select>	
+
+
+</mapper>

@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.ICounselMapper">
+
+	<resultMap type="MemberVO" id="MemberRM">
+		<result property="memNo" column="mem_no"/>
+		<result property="dprtNo" column="dprt_no"/>
+		<result property="memId" column="mem_id"/>
+		<result property="memName" column="mem_name"/>
+		<result property="memPh" column="mem_ph"/>
+		<result property="memEmail" column="mem_email"/>
+		<result property="memProfile" column="mem_profile"/>
+		<result property="memNationCode" column="mem_nation_code"/>
+		<result property="memRole" column="mem_role"/>
+		
+		<association property="departmentVO" javaType="DepartmentVO">
+			<result property="dprtName" column="dprt_name"/>
+		</association>
+	</resultMap>
+
+
+	<select id="getCounselList" parameterType="int" resultType="CounselVO">
+		SELECT
+			cs.cnsl_no
+			, cs.mem_no2
+			, cs.mem_no1
+			, cs.mem_name1
+			, cs.mem_name2
+			, cnsl_type
+			, cnsl_start_date
+			, cnsl_end_date
+			, cnsl_reg_date
+			, cnsl_status_code
+			, cnsl_reason
+			, cnsl_reject
+		FROM counsel cs, member cr, member std
+		WHERE
+			mem_no2 = #{memNo} 
+			and cs.mem_no1 = cr.mem_no
+			and cs.mem_no2 = std.mem_no
+		order by cs.cnsl_no DESC
+	</select>
+	
+	<select id="getProCounselList" parameterType="int" resultType="CounselVO">
+		SELECT
+			cs.cnsl_no
+			, cs.mem_no2
+			, cs.mem_no1
+			, cs.mem_name1
+			, cs.mem_name2
+			, cnsl_type
+			, cnsl_start_date
+			, cnsl_end_date
+			, cnsl_reg_date
+			, cnsl_status_code
+			, cnsl_reason
+			, cnsl_reject
+		FROM counsel cs, member cr, member std
+		WHERE
+			mem_no1 = #{memNo} 
+			and cs.mem_no1 = cr.mem_no
+			and cs.mem_no2 = std.mem_no
+		order by cs.cnsl_no DESC
+	</select>
+	
+	<insert id="addRecord" parameterType="ChatRecordVO">
+		INSERT INTO chat_record(
+			chat_no
+			, mem_no
+			, chat_room_no
+			, chat_msg
+			, chat_sender
+			, chat_date
+		) VALUES (
+			chat_room_seq.nextval
+			, #{memNo}
+			, #{chatRoomNo}
+			, #{chatMsg}
+			, #{chatSender}
+			, SYSDATE
+		)
+	</insert>
+	
+	<select id="getRecordList" parameterType="int" resultType="ChatRecordVO">
+		SELECT
+			chat_no
+			, mem_no
+			, chat_room_no
+			, chat_msg
+			, chat_sender
+			, chat_date
+		FROM chat_record
+		WHERE
+			chat_room_no = #{chatRoomNo}
+		ORDER BY chat_date
+	</select>
+		
+	<sql id="searchSQL">
+		<if test="pagingVO.searchType != null and pagingVO.searchType == 'memName'">
+			and (m.mem_name like '%'||#{pagingVO.searchWord}||'%')
+		</if>
+		<if test="pagingVO.searchType != null and pagingVO.searchType == 'dprtName'">
+			and (d.dprt_name like '%'||#{pagingVO.searchWord}||'%')
+		</if>
+	</sql>
+	
+	<select id="getCounselor" resultMap="MemberRM">
+		select b.*
+		from (
+			select
+				a.*, row_number() over (order by a.mem_no desc) rnum
+			from (
+				SELECT 
+					m.mem_no
+					, m.dprt_no
+					, m.mem_id
+					, m.mem_name
+					, m.mem_ph
+					, m.mem_email
+					, m.mem_profile
+					, m.mem_nation_code
+					, m.mem_role
+					
+					, d.dprt_name
+				FROM member m
+				INNER JOIN department d ON (m.dprt_no = d.dprt_no)
+				WHERE m.mem_role = 'ROL002'
+				AND 1 = 1
+				<include refid="searchSQL" />
+				order by m.mem_no desc
+			) a
+		) b
+		<![CDATA[
+			where b.rnum >= #{pagingVO.startRow} and b.rnum <= #{pagingVO.endRow}
+		]]>
+	</select>
+	
+	<select id="getCounselorCnt" resultType="int">
+		SELECT count(m.mem_no) 
+		FROM member m
+		INNER JOIN department d ON (m.dprt_no = d.dprt_no)
+		WHERE m.mem_role = 'ROL002'
+		AND 1 = 1
+		<include refid="searchSQL" />
+	</select>
+	
+	<select id="counselSchDataList" parameterType="int" resultType="ScheduleDataVO">
+		SELECT 
+			sch_data_no
+			, mem_no
+			, sch_name
+			, sch_start
+			, sch_end
+			, sch_data_code
+		FROM schedule_data
+    	WHERE 
+    		mem_no = #{memNo}
+    		and sch_data_code = 'SDC003'
+    	order by sch_data_no DESC
+	</select>
+	
+	
+	<insert id="addReserveCousel" parameterType="CounselVO">
+		INSERT into counsel
+		(
+			cnsl_no
+			, mem_no1
+			, mem_no2
+			, mem_name1
+			, mem_name2
+			, cnsl_type
+			, cnsl_start_date
+			, cnsl_end_date
+			, cnsl_reg_date
+			, cnsl_status_code
+			, cnsl_reason
+		) VALUES (
+			counsel_seq.nextval
+			, #{memNo1			}
+			, #{memNo2			}
+			, #{memName1		}
+			, #{memName2		}
+			, #{cnslType		}
+			, TO_DATE(#{cnslStartDate }, 'YYYY-MM-DD HH24:MI:SS')
+			, TO_DATE(#{cnslEndDate }, 'YYYY-MM-DD HH24:MI:SS')
+			, sysDate
+			, 'CNS001'
+			, #{cnslReason		}
+		)
+	</insert>
+	
+	<update id="updateSchedule" parameterType="ScheduleDataVO">
+		UPDATE schedule_data
+		SET
+			SCH_NAME = #{schName }
+		where 
+			SCH_DATA_NO = #{schDataNo }
+	</update>
+
+	<select id="getCounselInfo" parameterType="int" resultType="CounselVO">
+		SELECT 
+			cnsl_no
+			, mem_no2
+			, mem_no1
+			, mem_name1
+			, mem_name2
+			, cnsl_type
+			, cnsl_start_date
+			, cnsl_reg_date
+			, cnsl_status_code
+			, cnsl_reason
+			, cnsl_details
+			, cnsl_reject
+			, cnsl_end_date
+		FROM counsel
+    	WHERE 
+    		cnsl_no = #{cnslNo }
+    	order by cnsl_no DESC
+	</select>
+	
+	<update id="updateCnslDetail" parameterType="CounselVO">
+		update counsel set
+			cnsl_details = #{cnslDetails }
+		where
+			cnsl_no = #{cnslNo }
+	</update>
+	
+	<select id="getMemName" parameterType="int" resultType="String">
+		select mem_name from member where mem_no = #{memNo }
+	</select>
+	
+	<!-- <insert id="addCounsel" parameterType=""></insert> -->
+	
+	<insert id="addCounselSchedule" parameterType="ScheduleDataVO">
+		INSERT into schedule_data
+			(
+				sch_data_no
+				,mem_no
+				,sch_name
+				,sch_start
+				,sch_end
+				,sch_data_code
+			) VALUES (
+				schedule_data_seq.nextval
+				,#{memNo }
+				,'상담'
+				, TO_DATE(#{schStart }, 'YYYY-MM-DD HH24:MI:SS')
+				, TO_DATE(#{schEnd }, 'YYYY-MM-DD HH24:MI:SS')
+				,'SDC003'
+			)
+	</insert>
+	
+	<delete id="deleteCounselSchedule" parameterType="int">
+		DELETE FROM schedule_data
+		WHERE sch_data_no = #{schDataNo}
+			AND sch_data_code = 'SDC003'
+	</delete>
+</mapper>

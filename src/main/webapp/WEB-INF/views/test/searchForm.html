@@ -1,0 +1,17 @@
+<!-- 맨 오른쪽 정렬 + 전체 너비 사용 -->
+
+<div class="row" style="justify-content: flex-end;">
+	<div class="col-md-4"> <!-- col-md-5: 부모 너비 값의 절반 사용 -->
+		<div class="form-group">
+			<label class="form-label" style="display: block;">검색어</label> <!-- 라벨로 위에 제목처럼 올라옴 -->
+			<select class="form-control" style="width: 30%; display: inline-block;">
+				<option selected="selected" disabled="disabled">과목명</option> <!-- disabled : 선택안됨(select의 제목?) -->
+				<option>식물생리학</option>
+				<option>동물생리학</option>
+				<option>생화학</option>
+			</select> 
+			<input type="text" placeholder="입력하세요" class="form-control" style="width: 55%; display: inline-block;">
+			<button type="button" class="btn btn-primary btn-sm">검색</button>
+		</div>
+	</div>
+</div>

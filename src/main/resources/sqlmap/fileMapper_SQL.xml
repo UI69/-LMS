@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.mapper.IFileMapper">
+
+	<select id="getFileSeq" resultType="int">
+		select file_seq.nextval from dual
+	</select>
+	
+	<insert id="addFile" parameterType="list">
+		<foreach collection="list" item="item" separator=" " open="INSERT ALL" close="SELECT 1 FROM DUAL">
+			INTO files (
+				file_no
+				, file_group_no
+				, file_name
+				, file_path
+				, file_size
+				, file_uuid
+				, file_mime
+				, file_upload_date
+				, file_fancysize
+			)VALUES(
+				#{item.fileNo}
+				, #{item.fileGroupNo}
+				, #{item.fileName}
+				, #{item.filePath}
+				, #{item.fileSize}
+				, #{item.fileUuid}
+				, #{item.fileMime}
+				, sysDate
+				, #{item.fileFancysize}
+			)
+		</foreach>
+	</insert>
+	
+	<insert id="addfile" parameterType="FilesVO">
+		INSERT INTO files (
+			file_no
+			, file_group_no
+			, file_name
+			, file_path
+			, file_size
+			, file_uuid
+			, file_mime
+			, file_upload_date
+			, file_fancysize
+		)VALUES(
+			  #{fileNo}
+			, #{fileGroupNo}
+			, #{fileName}
+			, #{filePath}
+			, #{fileSize}
+			, #{fileUuid}
+			, #{fileMime}
+			, sysDate
+			, #{fileFancysize}
+		)
+	</insert>
+	
+	<select id="getFileList" parameterType="int" resultType="FilesVO">
+		SELECT
+			file_no
+			, file_group_no
+			, file_name
+			, file_path
+			, file_size
+			, file_uuid
+			, file_mime
+			, file_upload_date
+			, file_fancysize
+		FROM files
+		WHERE
+			file_no = #{fileNo}
+		ORDER BY file_group_no ASC
+	</select>
+	
+	<update id="incrementDownCount" parameterType="int">
+		UPDATE files
+		SET
+			file_down_cnt = file_down_cnt + 1
+		WHERE 
+			file_no = #{fileNo}
+	</update>
+	
+	<insert id="createFile">
+		<selectKey keyProperty="fileNo" resultType="int" order="BEFORE">
+			select file_seq.nextval from dual
+		</selectKey>
+		insert into files (
+			FILE_NO,
+			FILE_GROUP_NO,
+			FILE_NAME,
+			FILE_PATH,
+			FILE_UUID,
+			FILE_MIME,
+			FILE_DOWN_CNT,
+			FILE_UPLOAD_DATE,
+			FILE_FANCYSIZE,
+			FILE_SIZE
+		) values (
+			#{fileNo}, 
+			#{fileGroupNo}, 
+			#{fileName}, 
+			#{filePath}, 
+			#{fileUuid}, 
+			#{fileMime}, 
+			0, 
+			sysdate,
+			#{fileFancysize}, 
+			#{fileSize}
+		)
+	</insert>
+	
+</mapper>
